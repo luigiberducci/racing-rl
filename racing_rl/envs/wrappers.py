@@ -59,7 +59,6 @@ if __name__ == "__main__":
         obs = env.reset(mode='random')
         for j in range(10):
             obs, reward, done, info = env.step({'steering': 0.0, 'velocity': 5.0})
-            #env.render()
     # check env
     try:
         from stable_baselines3.common.env_checker import check_env
