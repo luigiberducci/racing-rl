@@ -121,7 +121,7 @@ class SingleAgentRaceEnv(F110Env):
         # compute x, y, theta
         assert 0 <= waypoint_id < self._track.centerline.shape[0] - 1
         wp, next_wp = self._track.centerline[waypoint_id], self._track.centerline[waypoint_id + 1]
-        theta = np.arctan2(wp[1] - next_wp[1], wp[0] - next_wp[0])
+        theta = np.arctan2(next_wp[1] - wp[1], next_wp[0] - wp[0])
         pose = [wp[0], wp[1], theta]
         # call original method
         original_obs, reward, done, original_info = super().reset(poses=np.array([pose]))
