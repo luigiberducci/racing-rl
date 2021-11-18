@@ -5,7 +5,7 @@ import numpy as np
 
 
 class LidarOccupancyObservation(gym.ObservationWrapper):
-    def __init__(self, env, max_range=30.0, resolution=0.5):
+    def __init__(self, env, max_range=10.0, resolution=0.08):
         super(LidarOccupancyObservation, self).__init__(env)
         self._max_range = max_range
         self._resolution = resolution
