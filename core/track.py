@@ -45,20 +45,6 @@ class Track:
         return Track(filepath=str((track_dir / map_filename.stem).absolute()), ext=map_filename.suffix,
                      occupancy_map=occupancy_map, centerline=centerline)
 
-        """
-        map_height = map_img.shape[0]
-        map_width = map_img.shape[1]
-
-        # convert map pixels to coordinates
-        range_x = np.arange(map_width)
-        range_y = np.arange(map_height)
-        map_x, map_y = np.meshgrid(range_x, range_y)
-        map_x = (map_x * map_resolution + origin_x).flatten()
-        map_y = (map_y * map_resolution + origin_y).flatten()
-        map_z = np.zeros(map_y.shape)
-        map_coords = np.vstack((map_x, map_y, map_z))
-        """
-
 
 if __name__ == "__main__":
     track = Track.from_track_name("Catalunya")

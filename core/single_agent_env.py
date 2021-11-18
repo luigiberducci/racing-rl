@@ -24,6 +24,8 @@ class SingleAgentRaceEnv(F110Env):
         sim_params = params if params else self._default_sim_params
         super(SingleAgentRaceEnv, self).__init__(map=self._track.filepath, map_ext=self._track.ext,
                                                  params=sim_params, num_agents=1, seed=seed)
+        self._scan_size = self.sim.agents[0].scan_simulator.num_beams
+        self._scan_range = self.sim.agents[0].scan_simulator.max_range
 
     @property
     def observation_space(self):
@@ -33,10 +35,8 @@ class SingleAgentRaceEnv(F110Env):
             velocity: linear x velocity (m/s), linear y velocity (m/s), angular velocity (rad/s)
             collision: indicator if the agent is in collision (bool)
         """
-        scan_size = self.sim.agents[0].scan_simulator.num_beams
-        scan_range = self.sim.agents[0].scan_simulator.max_range
         return gym.spaces.Dict({
-            'scan': gym.spaces.Box(low=0.0, high=scan_range, shape=(scan_size,)),
+            'scan': gym.spaces.Box(low=0.0, high=self._scan_range, shape=(self._scan_size,)),
             'pose': gym.spaces.Box(low=np.NINF, high=np.PINF, shape=(3,)),
             'velocity': gym.spaces.Box(low=np.NINF, high=np.PINF, shape=(3,)),
             'collision': gym.spaces.Discrete(2),
@@ -61,7 +61,8 @@ class SingleAgentRaceEnv(F110Env):
                 'I': 0.04712, 's_min': -0.4189, 's_max': 0.4189, 'sv_min': -3.2, 'sv_max': 3.2, 'v_switch': 7.319,
                 'a_max': 9.51, 'v_min': -5.0, 'v_max': 20.0, 'width': 0.31, 'length': 0.58}
 
-    def _get_flat_action(self, action: Dict[str, float]):
+    @staticmethod
+    def _get_flat_action(action: Dict[str, float]):
         assert 'steering' in action and 'velocity' in action
         flat_action = np.array([[action['steering'], action['velocity']]])
         assert flat_action.shape == (1, 2), f'the actions dict-array conversion returns wrong shape {flat_action.shape}'
@@ -71,7 +72,8 @@ class SingleAgentRaceEnv(F110Env):
         assert all([f in old_obs for f in ['scans', 'poses_x', 'poses_y', 'poses_theta',
                                            'linear_vels_x', 'linear_vels_y', 'ang_vels_z',
                                            'collisions']]), f'obs keys are {old_obs.keys()}'
-        obs = {'scan': old_obs['scans'][0],
+        # Note: the original env returns `scan` values > `max_range`. To keep compatibility wt obs-space, we clip it
+        obs = {'scan': np.clip(old_obs['scans'][0], 0, self._scan_range),
                'pose': np.array([old_obs['poses_x'][0], old_obs['poses_y'][0], old_obs['poses_theta'][0]]),
                'velocity': np.array(
                    [old_obs['linear_vels_x'][0], old_obs['linear_vels_y'][0], old_obs['ang_vels_z'][0]]),
@@ -83,7 +85,8 @@ class SingleAgentRaceEnv(F110Env):
         assert all([f in old_info for f in ['checkpoint_done']]), f'info keys are {old_info.keys()}'
         info = {'checkpoint_done': old_info['checkpoint_done'][0],
                 'lap_time': old_obs['lap_times'][0],
-                'lap_count': old_obs['lap_counts'][0]}
+                'lap_count': old_obs['lap_counts'][0],
+                }
         return info
 
     def step(self, action):
@@ -140,8 +143,8 @@ if __name__ == "__main__":
         obs = env.reset(mode='random')
         for j in range(500):
             obs, reward, done, info = env.step({'steering': 0.0, 'velocity': 2.0})
-            # env.render()
-        # input("next?")
+            env.render()
+        input("next?")
     # check env
     from stable_baselines3.common.env_checker import check_env
 
