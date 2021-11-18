@@ -1,0 +1,6 @@
+[submodule "f1tenth_racetracks"]
+	path = f1tenth_racetracks
+	url = git@github.com:f1tenth/f1tenth_racetracks.git
+[submodule "f1tenth_gym"]
+	path = f1tenth_gym
+	url = git@github.com:f1tenth/f1tenth_gym.git
