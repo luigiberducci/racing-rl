@@ -50,8 +50,8 @@ class LidarOccupancyObservation(gym.Wrapper):
 
 
 if __name__ == "__main__":
-    from core.single_agent_env import SingleAgentRaceEnv
-    import matplotlib.pyplot as plt
+    from racing_rl.envs.single_agent_env import SingleAgentRaceEnv
+
     env = SingleAgentRaceEnv("Melbourne")
     env = LidarOccupancyObservation(env, max_range=10)
     for i in range(3):
@@ -61,5 +61,10 @@ if __name__ == "__main__":
             obs, reward, done, info = env.step({'steering': 0.0, 'velocity': 5.0})
             #env.render()
     # check env
-    from stable_baselines3.common.env_checker import check_env
-    check_env(env)
+    try:
+        from stable_baselines3.common.env_checker import check_env
+        check_env(env)
+        print("[Result] env ok")
+    except Exception as ex:
+        print("[Result] env not compliant wt openai-gym standard")
+        print(ex)

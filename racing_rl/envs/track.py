@@ -18,6 +18,16 @@ class TrackSpec(YamlDataClassConfig):
     free_thresh: float
 
 
+def find_track_dir(track_name):
+    # we assume there are no blank space in the track name. however, to take into account eventual blank spaces in
+    # the map dirpath, we loop over all possible maps and check if there is a matching with the current track
+    base_dir = pathlib.Path(__file__).parent / ".." / ".." / "f1tenth_racetracks"
+    for dir in base_dir.iterdir():
+        if track_name == str(dir.stem).replace(" ", ""):
+            return dir
+    raise FileNotFoundError(f'no mapdir matching {track_name} in {base_dir}')
+
+
 @dataclass
 class Track:
     filepath: str
@@ -28,7 +38,7 @@ class Track:
     @staticmethod
     def from_track_name(track: str):
         try:
-            track_dir = pathlib.Path(__file__).parent / ".." / "f1tenth_racetracks" / track
+            track_dir = find_track_dir(track)
             # load track spec
             with open(track_dir / f"{track}_map.yaml", 'r') as yaml_stream:
                 map_metadata = yaml.safe_load(yaml_stream)
@@ -47,5 +57,5 @@ class Track:
 
 
 if __name__ == "__main__":
-    track = Track.from_track_name("Catalunya")
-    print("SUCCESS")
+    track = Track.from_track_name("MexicoCity")
+    print("[Result] map loaded successfully")

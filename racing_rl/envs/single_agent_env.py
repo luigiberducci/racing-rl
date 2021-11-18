@@ -2,10 +2,9 @@ from typing import Dict, Any
 
 import numpy as np
 
-import f1tenth_gym
 import gym
 
-from core.track import Track
+from racing_rl.envs.track import Track
 from f110_gym.envs import F110Env
 from f110_gym.envs.rendering import EnvRenderer
 
@@ -143,9 +142,12 @@ if __name__ == "__main__":
         obs = env.reset(mode='random')
         for j in range(500):
             obs, reward, done, info = env.step({'steering': 0.0, 'velocity': 2.0})
-            env.render()
-        input("next?")
+            #env.render()
     # check env
-    from stable_baselines3.common.env_checker import check_env
-
-    check_env(env)
+    try:
+        from stable_baselines3.common.env_checker import check_env
+        check_env(env)
+        print("[Result] env ok")
+    except Exception as ex:
+        print("[Result] env not compliant wt openai-gym standard")
+        print(ex)
