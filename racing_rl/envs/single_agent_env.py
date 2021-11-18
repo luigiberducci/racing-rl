@@ -27,18 +27,20 @@ class SingleAgentRaceEnv(F110Env):
         self._scan_range = self.sim.agents[0].scan_simulator.max_range
 
     @property
+    def track(self):
+        return self._track
+
+    @property
     def observation_space(self):
         """
             scan: lidar data (m)
             pose: x, y, z coordinate (m)
             velocity: linear x velocity (m/s), linear y velocity (m/s), angular velocity (rad/s)
-            collision: indicator if the agent is in collision (bool)
         """
         return gym.spaces.Dict({
             'scan': gym.spaces.Box(low=0.0, high=self._scan_range, shape=(self._scan_size,)),
             'pose': gym.spaces.Box(low=np.NINF, high=np.PINF, shape=(3,)),
             'velocity': gym.spaces.Box(low=np.NINF, high=np.PINF, shape=(3,)),
-            'collision': gym.spaces.Discrete(2),
         })
 
     @property
@@ -75,16 +77,16 @@ class SingleAgentRaceEnv(F110Env):
         obs = {'scan': np.clip(old_obs['scans'][0], 0, self._scan_range),
                'pose': np.array([old_obs['poses_x'][0], old_obs['poses_y'][0], old_obs['poses_theta'][0]]),
                'velocity': np.array(
-                   [old_obs['linear_vels_x'][0], old_obs['linear_vels_y'][0], old_obs['ang_vels_z'][0]]),
-               'collision': 1 if old_obs['collisions'] else 0}
+                   [old_obs['linear_vels_x'][0], old_obs['linear_vels_y'][0], old_obs['ang_vels_z'][0]])}
         return obs
 
     def _prepare_info(self, old_obs, old_info):
-        assert all([f in old_obs for f in ['lap_times', 'lap_counts']]), f'obs keys are {old_obs.keys()}'
+        assert all([f in old_obs for f in ['lap_times', 'lap_counts', 'collisions']]), f'obs keys are {old_obs.keys()}'
         assert all([f in old_info for f in ['checkpoint_done']]), f'info keys are {old_info.keys()}'
         info = {'checkpoint_done': old_info['checkpoint_done'][0],
                 'lap_time': old_obs['lap_times'][0],
                 'lap_count': old_obs['lap_counts'][0],
+                'collision': old_obs['collisions'][0]
                 }
         return info
 
@@ -142,10 +144,11 @@ if __name__ == "__main__":
         obs = env.reset(mode='random')
         for j in range(500):
             obs, reward, done, info = env.step({'steering': 0.0, 'velocity': 2.0})
-            #env.render()
+            # env.render()
     # check env
     try:
         from stable_baselines3.common.env_checker import check_env
+
         check_env(env)
         print("[Result] env ok")
     except Exception as ex:

@@ -35,6 +35,14 @@ class Track:
     occupancy_map: np.ndarray
     centerline: np.ndarray
 
+    def get_id_closest_point2centerline(self, point: Tuple[float, float]):
+        idx = (np.abs(self.centerline[:, 0:2] - point)).argmin()
+        return idx
+
+    def get_progress(self, point: Tuple[float, float]):
+        idx = self.get_id_closest_point2centerline(point)
+        return idx / self.centerline.shape[0]
+
     @staticmethod
     def from_track_name(track: str):
         try:
