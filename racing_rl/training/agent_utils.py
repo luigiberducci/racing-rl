@@ -34,6 +34,7 @@ class CustomCNN(BaseFeaturesExtractor):
     def forward(self, observations: th.Tensor) -> th.Tensor:
         return self.linear(self.cnn(observations))
 
+
 def make_agent(env, algo, policy_kwargs, logdir):
     if algo == 'sac':
         from stable_baselines3 import PPO

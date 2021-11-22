@@ -11,22 +11,22 @@ from racing_rl.training.callbacks import VideoRecorderCallback
 from racing_rl.training.env_utils import make_base_env
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--track", type="str")
-parser.add_argument("--n_steps", type="int")
-parser.add_argument("--algo", choices=['sac', 'ppo'])
+parser.add_argument("--track", type=str, required=True)
+parser.add_argument("--algo", choices=['sac', 'ppo'], required=True)
+parser.add_argument("--n_steps", type=int, default=1000000)
 args = parser.parse_args()
 
 # logs
 task = f"SingleAgent{args.track.capitalize()}-v0"
-timestamp = datetime.now.strftime("%m%d%Y_%H%M%S")
+timestamp = datetime.now().strftime("%m%d%Y_%H%M%S")
 logdir = pathlib.Path(f"logs/{task}_{args.algo}_{timestamp}")
 
 # make envs
 train_env = make_base_env(task)
-train_env = FixResetWrapper(mode="random")
+train_env = FixResetWrapper(train_env, mode="random")
 
 eval_env = make_base_env(task)
-eval_env = FixResetWrapper(mode="grid")
+eval_env = FixResetWrapper(eval_env, mode="grid")
 
 # callbacks
 eval_callback = EvalCallback(eval_env, best_model_save_path=str(logdir / 'models'),
@@ -40,6 +40,6 @@ policy_kwargs = dict(
     features_extractor_class=CustomCNN,
     features_extractor_kwargs=dict(features_dim=128),
 )
-model = make_agent(train_env, args.algo, logdir)
+model = make_agent(train_env, args.algo, policy_kwargs, str(logdir))
 
 model.learn(args.n_steps, callback=callbacks)
