@@ -2,10 +2,10 @@ import argparse
 import pathlib
 from datetime import datetime
 
-from stable_baselines3 import PPO
+from gym.wrappers import Monitor
 from stable_baselines3.common.callbacks import EvalCallback
 
-from racing_rl.envs.wrappers import FixResetWrapper
+from racing_rl.envs.wrappers import FixResetWrapper, LapLimit, ElapsedTimeLimit
 from racing_rl.training.agent_utils import CustomCNN, make_agent
 from racing_rl.training.callbacks import VideoRecorderCallback
 from racing_rl.training.env_utils import make_base_env
@@ -24,9 +24,12 @@ logdir = pathlib.Path(f"logs/{task}_{args.algo}_{timestamp}")
 # make envs
 train_env = make_base_env(task)
 train_env = FixResetWrapper(train_env, mode="random")
+env = ElapsedTimeLimit(train_env, max_episode_duration=20.0)
 
 eval_env = make_base_env(task)
 eval_env = FixResetWrapper(eval_env, mode="grid")
+eval_env = LapLimit(eval_env, max_episode_laps=1)
+eval_env = Monitor(eval_env, logdir / 'videos')
 
 # callbacks
 eval_callback = EvalCallback(eval_env, best_model_save_path=str(logdir / 'models'),

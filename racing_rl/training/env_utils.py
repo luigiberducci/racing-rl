@@ -1,5 +1,5 @@
 import gym
-from gym.wrappers import RescaleAction
+from gym.wrappers import RescaleAction, TimeLimit
 from stable_baselines3.common.atari_wrappers import MaxAndSkipEnv
 
 from racing_rl.envs.wrappers import LidarOccupancyObservation, FilterObservationWrapper, FlattenAction

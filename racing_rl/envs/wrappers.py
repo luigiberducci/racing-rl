@@ -95,6 +95,37 @@ class FixResetWrapper(gym.Wrapper):
         return super(FixResetWrapper, self).reset(mode=self._mode)
 
 
+class LapLimit(gym.Wrapper):
+    """Fix a max nr laps for resetting environment."""
+
+    def __init__(self, env, max_episode_laps):
+        self._max_episode_laps = max_episode_laps
+        super(LapLimit, self).__init__(env)
+
+    def step(self, action):
+        obs, reward, done, info = super(LapLimit, self).step(action)
+        assert 'lap_count' in info
+        if info['lap_count'] >= self._max_episode_laps:
+            done = True
+        return obs, reward, done, info
+
+
+class ElapsedTimeLimit(gym.Wrapper):
+    """Fix a max nr laps for resetting environment."""
+
+    def __init__(self, env, max_episode_duration):
+        self._max_episode_duration = max_episode_duration
+        super(ElapsedTimeLimit, self).__init__(env)
+
+    def step(self, action):
+        obs, reward, done, info = super(ElapsedTimeLimit, self).step(action)
+        assert 'lap_time' in info
+        if info['lap_time'] >= self._max_episode_duration:
+            done = True
+        return obs, reward, done, info
+
+
+
 """
 class AccelerationControlWrapper(gym.Wrapper):
     def __init__(self, env):

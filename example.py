@@ -1,28 +1,24 @@
-import gym
-from gym.wrappers import FrameStack
-from stable_baselines3.common.env_checker import check_env
+import time
 
-import racing_rl
-from racing_rl.envs.wrappers import LidarOccupancyObservation, FlattenAction, FilterObservationWrapper
-from racing_rl.rewards.progress_based import ProgressReward
+from gym.wrappers import TimeLimit
 
-env = gym.make("SingleAgentMelbourne-v0")
-env = ProgressReward(env, env.track)
-env = LidarOccupancyObservation(env)
-env = FilterObservationWrapper(env, obs_name='lidar_occupancy')
-env = FlattenAction(env)
-env = gym.wrappers.RescaleAction(env, a=-1, b=+1)
-env = FrameStack(env, num_stack=5)
+from racing_rl.envs.wrappers import FixResetWrapper, LapLimit, ElapsedTimeLimit
+from racing_rl.training.env_utils import make_base_env
 
+env = make_base_env('SingleAgentMelbourne-v0')
+env = FixResetWrapper(env, mode='random')
+env = ElapsedTimeLimit(env, max_episode_duration=10.0)
 
 for i in range(5):
-    obs = env.reset(mode='grid')
+    t0 = time.time()
+    obs = env.reset()
     done = False
     t = 0
-    while t<1000 and not done:
+    while not done:
         t += 1
-        obs, reward, done, info = env.step([0.0, 0.5])
-        print(reward)
+        obs, reward, done, info = env.step([0.0, -1.0])
+        #print(reward)
         if info['collision']:
             print("COLLISION")
-        env.render()
+        #env.render()
+    print(f"DONE, sim time: {info['lap_time']}, real time: {time.time() - t0}")
