@@ -20,5 +20,5 @@ for i in range(5):
         #print(reward)
         if info['collision']:
             print("COLLISION")
-        #env.render()
+        env.render()
     print(f"DONE, sim time: {info['lap_time']}, real time: {time.time() - t0}")
