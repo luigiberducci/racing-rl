@@ -28,6 +28,7 @@ env = ElapsedTimeLimit(train_env, max_episode_duration=20.0)
 
 eval_env = make_base_env(task)
 eval_env = FixResetWrapper(eval_env, mode="grid")
+eval_env = ElapsedTimeLimit(eval_env, max_episode_duration=60.0)
 eval_env = LapLimit(eval_env, max_episode_laps=1)
 eval_env = Monitor(eval_env, logdir / 'videos')
 
