@@ -83,6 +83,18 @@ class FilterObservationWrapper(gym.Wrapper):
         return new_obs
 
 
+class FixResetWrapper(gym.Wrapper):
+    """Fix a reset mode to sample initial condition from starting grid or randomly over the track."""
+
+    def __init__(self, env, mode):
+        assert mode in ['grid', 'random']
+        self._mode = mode
+        super(FixResetWrapper, self).__init__(env)
+
+    def reset(self):
+        return super(FixResetWrapper, self).reset(mode=self._mode)
+
+
 """
 class AccelerationControlWrapper(gym.Wrapper):
     def __init__(self, env):
@@ -135,12 +147,5 @@ def test_lidar_occupancy_wrapper(render=False):
     test_wrapped_env(env, render)
 
 
-def test_acceleration_control_wrapper(render=False):
-    from racing_rl.envs.single_agent_env import SingleAgentRaceEnv
-    env = SingleAgentRaceEnv("Melbourne")
-    env = AccelerationControlWrapper(env)
-    test_wrapped_env(env, render)
-
-
 if __name__ == "__main__":
-    test_acceleration_control_wrapper(render=True)
+    test_lidar_occupancy_wrapper(render=True)
