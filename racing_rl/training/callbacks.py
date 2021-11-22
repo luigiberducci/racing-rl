@@ -1,7 +1,10 @@
+from typing import Dict, Any
+
 import gym
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.logger import Video
+import torch as th
 
 class VideoRecorderCallback(BaseCallback):
     def __init__(self, eval_env: gym.Env, render_freq: int, n_eval_episodes: int = 1, deterministic: bool = True):

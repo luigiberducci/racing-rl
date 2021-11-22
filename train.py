@@ -33,9 +33,9 @@ eval_env = Monitor(eval_env, logdir / 'videos')
 
 # callbacks
 eval_callback = EvalCallback(eval_env, best_model_save_path=str(logdir / 'models'),
-                             log_path=str(logdir / 'models'), eval_freq=1000,
+                             log_path=str(logdir / 'models'), eval_freq=10000,
                              deterministic=True, render=False)
-video_recorder = VideoRecorderCallback(eval_env, render_freq=5000)
+video_recorder = VideoRecorderCallback(eval_env, render_freq=10000)
 callbacks = [eval_callback, video_recorder]
 
 # training
