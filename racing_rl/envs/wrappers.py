@@ -2,6 +2,7 @@ import math
 
 import gym
 import numpy as np
+from numba import njit
 
 
 class LidarOccupancyObservation(gym.ObservationWrapper):
@@ -19,25 +20,25 @@ class LidarOccupancyObservation(gym.ObservationWrapper):
         self.observation_space = gym.spaces.Dict(obs_dict)
 
     @staticmethod
-    def _polar2cartesian(dist, angle):
-        x = dist * np.cos(angle)
-        y = dist * np.sin(angle)
-        return x, y
+    @njit(fastmath=False, cache=True)
+    def _polar2cartesian(dist, angle, n_bins, res):
+        occupancy_map = np.zeros(shape=(n_bins, n_bins), dtype=np.uint8)
+        xx = dist * np.cos(angle)
+        yy = dist * np.sin(angle)
+        xi, yi = np.floor(xx / res), np.floor(yy / res)
+        for px, py in zip(xi, yi):
+            row = min(max(n_bins // 2 + py, 0), n_bins - 1)
+            col = min(max(n_bins // 2 + py, 0), n_bins - 1)
+            if row < n_bins - 1 and col < n_bins - 1:
+                # in this way, then >max_range we dont fill the occupancy map in order to let a visible gap
+                occupancy_map[int(row), int(col)] = 255
+        return np.expand_dims(occupancy_map, -1)
 
     def observation(self, observation):
         assert 'scan' in observation
         scan = observation['scan']
         scan_angles = self.sim.agents[0].scan_angles  # assumption: all the lidars are equal in ang. spectrum
-        occupancy_map = np.zeros(shape=(self._n_bins, self._n_bins), dtype=np.uint8)
-        xx, yy = self._polar2cartesian(scan, scan_angles)
-        xi, yi = np.floor(xx / self._resolution), np.floor(yy / self._resolution)
-        for px, py in zip(xi, yi):
-            row = np.clip(self._n_bins // 2 + py, 0, self._n_bins - 1)
-            col = np.clip(self._n_bins // 2 + px, 0, self._n_bins - 1)
-            if row < self._n_bins - 1 and col < self._n_bins - 1:
-                # in this way, then >max_range we dont fill the occupancy map in order to let a visible gap
-                occupancy_map[int(row), int(col)] = 255
-        observation['lidar_occupancy'] = np.expand_dims(occupancy_map, axis=-1)
+        observation['lidar_occupancy'] = self._polar2cartesian(scan, scan_angles, self._n_bins, self._resolution)
         return observation
 
 
