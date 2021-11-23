@@ -1,7 +1,9 @@
 import gym
-from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
-from torch import nn
+import numpy as np
 import torch as th
+from torch import nn
+
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor, CombinedExtractor
 
 
 class CustomCNN(BaseFeaturesExtractor):
@@ -39,11 +41,23 @@ def make_agent(env, algo, policy_kwargs, logdir):
     if algo == 'sac':
         from stable_baselines3 import SAC
         # note: dealing wt img observation requires large amount of ram for replay buffer
-        model = SAC("CnnPolicy", env, buffer_size=1000000,
-                    policy_kwargs=policy_kwargs, verbose=1, tensorboard_log=logdir)
+        model = SAC("MultiInputPolicy", env, buffer_size=1000000,
+                    verbose=1, tensorboard_log=logdir)
     elif algo == 'ppo':
         from stable_baselines3 import PPO
-        model = PPO("CnnPolicy", env, policy_kwargs=policy_kwargs, verbose=1, tensorboard_log=logdir)
+        model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=logdir)
+    elif algo == 'ddpg':
+        from stable_baselines3 import DDPG
+        n_actions = env.action_space.shape[-1]
+        from stable_baselines3.common.noise import NormalActionNoise
+        from stable_baselines3 import HerReplayBuffer
+        model = DDPG("MultiInputPolicy", env,
+                     gamma=0.9,
+                     learning_rate=0.00001,
+                     learning_starts=1000,
+                     gradient_steps=250,
+                     batch_size=100,
+                     verbose=1)
     else:
         raise NotImplementedError(algo)
     return model

@@ -9,6 +9,11 @@ for track in track_dir.iterdir():
     register(
         id=f"SingleAgent{track_name}-v0",
         entry_point='racing_rl:SingleAgentRaceEnv',
-        kwargs={'map_name': track_name}
+        kwargs={'map_name': track_name, 'gui': False}
+    )
+    register(
+        id=f"SingleAgent{track_name}_Gui-v0",
+        entry_point='racing_rl:SingleAgentRaceEnv',
+        kwargs={'map_name': track_name, 'gui': True}
     )
 

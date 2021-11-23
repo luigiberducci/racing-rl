@@ -18,13 +18,18 @@ class SingleAgentRaceEnv(F110Env):
         - fix rendering issue based on map filepath
     """
 
-    def __init__(self, map_name: str, params: Dict[str, Any] = None, seed: int = 0):
+    def __init__(self, map_name: str, gui: bool = False, params: Dict[str, Any] = None, seed: int = 0):
         self._track = Track.from_track_name(map_name)
         sim_params = params if params else self._default_sim_params
         super(SingleAgentRaceEnv, self).__init__(map=self._track.filepath, map_ext=self._track.ext,
                                                  params=sim_params, num_agents=1, seed=seed)
+        self.add_render_callback(render_callback)
         self._scan_size = self.sim.agents[0].scan_simulator.num_beams
         self._scan_range = self.sim.agents[0].scan_simulator.max_range
+        # rendering
+        self._gui = gui
+        self._render_freq = 10
+        self._step = 0
 
     @property
     def track(self):
@@ -104,6 +109,9 @@ class SingleAgentRaceEnv(F110Env):
             obs = self._prepare_obs(original_obs)
             info = self._prepare_info(original_obs, original_info)
             done = bool(done)
+        if self._gui and self._step % self._render_freq == 0:
+            self.render()
+        self._step += 1
         return obs, reward, done, info
 
     def reset(self, mode: str = 'grid'):
@@ -126,6 +134,7 @@ class SingleAgentRaceEnv(F110Env):
         # call original method
         original_obs, reward, done, original_info = super().reset(poses=np.array([pose]))
         obs = self._prepare_obs(original_obs)
+        self._step = 0
         return obs
 
     def render(self, mode='human'):
@@ -136,6 +145,21 @@ class SingleAgentRaceEnv(F110Env):
             F110Env.renderer.update_map(self._track.filepath, self._track.ext)
         super(SingleAgentRaceEnv, self).render(mode)
 
+
+def render_callback(env_renderer):
+    # custom extra drawing function
+    e = env_renderer
+
+    # update camera to follow car
+    x = e.cars[0].vertices[::2]
+    y = e.cars[0].vertices[1::2]
+    top, bottom, left, right = max(y), min(y), min(x), max(x)
+    e.score_label.x = left
+    e.score_label.y = top - 700
+    e.left = left - 800
+    e.right = right + 800
+    e.top = top + 800
+    e.bottom = bottom - 800
 
 if __name__ == "__main__":
     env = SingleAgentRaceEnv("Catalunya")
