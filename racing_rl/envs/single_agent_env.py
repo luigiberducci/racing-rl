@@ -45,7 +45,7 @@ class SingleAgentRaceEnv(F110Env):
         return gym.spaces.Dict({
             'scan': gym.spaces.Box(low=0.0, high=self._scan_range, shape=(self._scan_size,)),
             'pose': gym.spaces.Box(low=np.NINF, high=np.PINF, shape=(3,)),
-            'velocity': gym.spaces.Box(low=np.NINF, high=np.PINF, shape=(3,)),
+            'velocity': gym.spaces.Box(low=-5, high=20, shape=(1,)),
         })
 
     @property
@@ -81,8 +81,7 @@ class SingleAgentRaceEnv(F110Env):
         # Note: the original env returns `scan` values > `max_range`. To keep compatibility wt obs-space, we clip it
         obs = {'scan': np.clip(old_obs['scans'][0], 0, self._scan_range),
                'pose': np.array([old_obs['poses_x'][0], old_obs['poses_y'][0], old_obs['poses_theta'][0]]),
-               'velocity': np.array(
-                   [old_obs['linear_vels_x'][0], old_obs['linear_vels_y'][0], old_obs['ang_vels_z'][0]])}
+               'velocity': np.array([old_obs['linear_vels_x'][0]])}
         return obs
 
     def _prepare_info(self, old_obs, old_info):

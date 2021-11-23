@@ -18,7 +18,7 @@ parser.add_argument("--n_steps", type=int, default=5000000)
 args = parser.parse_args()
 
 # logs
-task = f"SingleAgent{args.track.capitalize()}-v0"
+task = f"SingleAgent{args.track.capitalize()}_Gui-v0"
 timestamp = datetime.now().strftime("%m%d%Y_%H%M%S")
 logdir = pathlib.Path(f"logs/{task}_{args.algo}_{timestamp}")
 

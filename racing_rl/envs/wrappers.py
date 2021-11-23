@@ -130,6 +130,17 @@ class LapLimit(gym.Wrapper):
         return obs, reward, done, info
 
 
+class NormalizeVelocityObservation(gym.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+
+    def observation(self, obs):
+        assert 'velocity' in obs
+        low = self.observation_space['velocity'].low
+        high = self.observation_space['velocity'].high
+        obs['velocity'] = 2 * ((obs['velocity'] - low) / (high - low)) - 1
+        return obs
+
 class ElapsedTimeLimit(gym.Wrapper):
     """Fix a max nr laps for resetting environment."""
 
