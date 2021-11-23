@@ -34,11 +34,10 @@ def render_callback(env_renderer):
 
     planner.render_waypoints(env_renderer)
 
+
 env.add_render_callback(render_callback)
 
 planner = PurePursuitPlanner(env.track, wb=0.17145 + 0.15875, fixed_speed=5.0)
-
-
 
 for i in range(5):
     t0 = time.time()
