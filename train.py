@@ -13,7 +13,7 @@ from racing_rl.training.env_utils import make_base_env
 parser = argparse.ArgumentParser()
 parser.add_argument("--track", type=str, required=True)
 parser.add_argument("--algo", choices=['sac', 'ppo'], required=True)
-parser.add_argument("--n_steps", type=int, default=1000000)
+parser.add_argument("--n_steps", type=int, default=5000000)
 args = parser.parse_args()
 
 # logs
@@ -34,10 +34,10 @@ eval_env = Monitor(eval_env, logdir / 'videos')
 
 # callbacks
 eval_callback = EvalCallback(eval_env, best_model_save_path=str(logdir / 'models'),
-                             log_path=str(logdir / 'models'), eval_freq=10000,
+                             log_path=str(logdir / 'models'), eval_freq=20000,
                              deterministic=True, render=False)
-video_recorder = VideoRecorderCallback(eval_env, render_freq=10000)
-callbacks = [eval_callback, video_recorder]
+#video_recorder = VideoRecorderCallback(eval_env, render_freq=10000)
+callbacks = [eval_callback]
 
 # training
 policy_kwargs = dict(

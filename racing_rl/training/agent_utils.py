@@ -37,8 +37,10 @@ class CustomCNN(BaseFeaturesExtractor):
 
 def make_agent(env, algo, policy_kwargs, logdir):
     if algo == 'sac':
-        from stable_baselines3 import PPO
-        model = PPO("CnnPolicy", env, policy_kwargs=policy_kwargs, verbose=1, tensorboard_log=logdir)
+        from stable_baselines3 import SAC
+        # note: dealing wt img observation requires large amount of ram for replay buffer
+        model = SAC("CnnPolicy", env, buffer_size=1000000,
+                    policy_kwargs=policy_kwargs, verbose=1, tensorboard_log=logdir)
     elif algo == 'ppo':
         from stable_baselines3 import PPO
         model = PPO("CnnPolicy", env, policy_kwargs=policy_kwargs, verbose=1, tensorboard_log=logdir)

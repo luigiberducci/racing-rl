@@ -9,6 +9,8 @@ env = make_base_env('SingleAgentMelbourne-v0')
 env = FixResetWrapper(env, mode='random')
 env = ElapsedTimeLimit(env, max_episode_duration=10.0)
 
+import matplotlib.pyplot as plt
+
 for i in range(5):
     t0 = time.time()
     obs = env.reset()
@@ -16,9 +18,11 @@ for i in range(5):
     t = 0
     while not done:
         t += 1
-        obs, reward, done, info = env.step([0.0, -1.0])
+        obs, reward, done, info = env.step([0.0, 0.0])
         #print(reward)
         if info['collision']:
             print("COLLISION")
         env.render()
+        plt.imshow(obs)
+        plt.show()
     print(f"DONE, sim time: {info['lap_time']}, real time: {time.time() - t0}")
