@@ -2,7 +2,6 @@ from typing import Tuple
 
 import gym
 
-from racing_rl import SingleAgentRaceEnv
 from racing_rl.envs.track import Track
 
 
@@ -18,10 +17,18 @@ class ProgressReward(gym.Wrapper):
         self._current_progress = self._track.get_progress(point)
         return obs
 
+    def _compute_progress(self, obs, info):
+        assert 'pose' in obs and 'lap_count' in info
+        point = obs['pose'][0:2]
+        progress = info['lap_count'] + self._track.get_progress(point)
+        return progress
+
     def step(self, action):
         obs, _, done, info = super(ProgressReward, self).step(action)
-        point = obs['pose'][0:2]
-        new_progress = info['lap_count'] + self._track.get_progress(point)
-        reward = new_progress - self._current_progress
+        new_progress = self._compute_progress(obs, info)
+        if done:
+            reward = - 10
+        else:
+            reward = 100 * new_progress - self._current_progress
         self._current_progress = new_progress
         return obs, reward, done, info

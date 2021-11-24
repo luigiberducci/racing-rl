@@ -88,7 +88,7 @@ class FilterObservationWrapper(gym.Wrapper):
         return new_obs
 
 
-class FixSpeedControl(gym.Wrapper):
+class FixSpeedControl(gym.ActionWrapper):
     """
     reduce original problem to control only the steering angle
     """
@@ -98,9 +98,39 @@ class FixSpeedControl(gym.Wrapper):
         self._fixed_speed = fixed_speed
         self.action_space = gym.spaces.Dict({'steering': self.env.action_space['steering']})
 
-    def step(self, action):
+    def action(self, action):
+        assert 'steering' in action
         new_action = {'steering': action['steering'], 'velocity': self._fixed_speed}
-        return super().step(new_action)
+        return new_action
+
+
+class ConstrainedSpeedControl(gym.ActionWrapper):
+    """
+    control the steering angle and a constrained increment of the velocity
+    """
+
+    def __init__(self, env, max_increment: float = 1.0, max_decrement: float = -1.0):
+        super(ConstrainedSpeedControl, self).__init__(env)
+        assert max_increment > 0 and max_decrement < 0, f'not valid arguments: max_increment {max_increment}, max_decrement {max_decrement}'
+        self._max_increment = max_increment
+        self._max_decrement = max_decrement
+        self._last_velocity = 0.0
+        self._old_action_space = self.action_space
+        self.action_space = gym.spaces.Dict({'steering': self.env.action_space['steering'],
+                                             'delta_velocity': gym.spaces.Box(low=self._max_decrement,
+                                                                              high=self._max_increment, shape=())})
+
+    def reset(self, **kwargs):
+        self._last_velocity = 0.0
+        return super(ConstrainedSpeedControl, self).reset(**kwargs)
+
+    def action(self, action):
+        assert action in self.action_space
+        velocity_low = self._old_action_space['velocity'].low
+        velocity_high = self._old_action_space['velocity'].high
+        velocity = np.clip(self._last_velocity + action['delta_velocity'], velocity_low, velocity_high)
+        new_action = {'steering': action['steering'], 'velocity': velocity}
+        return new_action
 
 
 class FixResetWrapper(gym.Wrapper):
@@ -140,6 +170,7 @@ class NormalizeVelocityObservation(gym.ObservationWrapper):
         high = self.observation_space['velocity'].high
         obs['velocity'] = 2 * ((obs['velocity'] - low) / (high - low)) - 1
         return obs
+
 
 class ElapsedTimeLimit(gym.Wrapper):
     """Fix a max nr laps for resetting environment."""
