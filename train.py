@@ -40,14 +40,11 @@ eval_freq = 1000
 eval_callback = EvalCallback(eval_env, best_model_save_path=str(logdir / 'models'),
                              log_path=str(logdir / 'evaluations'), eval_freq=eval_freq,
                              deterministic=True, render=True)
+checkpoint_callback = CheckpointCallback(save_freq=eval_freq, save_path=str(logdir / 'models'))
 #video_recorder = VideoRecorderCallback(eval_env, render_freq=10000)
-callbacks = [eval_callback]
+callbacks = [eval_callback, checkpoint_callback]
 
 # training
-policy_kwargs = dict(
-    features_extractor_class=CombinedExtractor,
-    features_extractor_kwargs=dict(features_dim=128),
-)
 model = make_agent(train_env, args.algo, str(logdir))
 
 model.learn(args.n_steps, callback=callbacks)
