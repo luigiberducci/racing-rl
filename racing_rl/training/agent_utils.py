@@ -37,7 +37,7 @@ class CustomCNN(BaseFeaturesExtractor):
         return self.linear(self.cnn(observations))
 
 
-def make_agent(env, algo, policy_kwargs, logdir):
+def make_agent(env, algo, logdir):
     if algo == 'sac':
         from stable_baselines3 import SAC
         # note: dealing wt img observation requires large amount of ram for replay buffer

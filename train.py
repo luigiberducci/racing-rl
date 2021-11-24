@@ -18,25 +18,26 @@ parser.add_argument("--n_steps", type=int, default=5000000)
 args = parser.parse_args()
 
 # logs
-task = f"SingleAgent{args.track.capitalize()}_Gui-v0"
+task = f"SingleAgent{args.track.capitalize()}-v0"
 timestamp = datetime.now().strftime("%m%d%Y_%H%M%S")
 logdir = pathlib.Path(f"logs/{task}_{args.algo}_{timestamp}")
 
 # make envs
 train_env = make_base_env(task)
-train_env = FixResetWrapper(train_env, mode="grid")
-train_env = TimeLimit(train_env, max_episode_steps=1000)
+train_env = FixResetWrapper(train_env, mode="random")
+train_env = TimeLimit(train_env, max_episode_steps=2000)
 
-eval_env = make_base_env(task)
+eval_task = f"SingleAgent{args.track.capitalize()}_Gui-v0"
+eval_env = make_base_env(eval_task)
 eval_env = FixResetWrapper(eval_env, mode="grid")
-eval_env = TimeLimit(train_env, max_episode_steps=6000)
+eval_env = TimeLimit(eval_env, max_episode_steps=12000)
 eval_env = LapLimit(eval_env, max_episode_laps=1)
 eval_env = Monitor(eval_env, logdir / 'videos')
 
 # callbacks
 eval_callback = EvalCallback(eval_env, best_model_save_path=str(logdir / 'models'),
-                             log_path=str(logdir / 'models'), eval_freq=20000,
-                             deterministic=True, render=False)
+                             log_path=str(logdir / 'models'), eval_freq=1000,
+                             deterministic=True, render=True)
 #video_recorder = VideoRecorderCallback(eval_env, render_freq=10000)
 callbacks = [eval_callback]
 
@@ -45,6 +46,6 @@ policy_kwargs = dict(
     features_extractor_class=CombinedExtractor,
     features_extractor_kwargs=dict(features_dim=128),
 )
-model = make_agent(train_env, args.algo, policy_kwargs, str(logdir))
+model = make_agent(train_env, args.algo, str(logdir))
 
 model.learn(args.n_steps, callback=callbacks)
