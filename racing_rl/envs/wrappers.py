@@ -1,3 +1,4 @@
+import collections
 import math
 
 import gym
@@ -12,11 +13,11 @@ class LidarOccupancyObservation(gym.ObservationWrapper):
         self._resolution = resolution
         self._n_bins = math.ceil(2 * self._max_range / self._resolution)
         # extend observation space
-        obs_dict = {}
+        obs_dict = collections.OrderedDict()
         for k, space in self.observation_space.spaces.items():
             obs_dict[k] = space
         obs_dict['lidar_occupancy'] = gym.spaces.Box(low=0, high=255, dtype=np.uint8,
-                                                     shape=(self._n_bins, self._n_bins, 1))
+                                                     shape=(1, self._n_bins, self._n_bins))
         self.observation_space = gym.spaces.Dict(obs_dict)
 
     @staticmethod
@@ -32,7 +33,7 @@ class LidarOccupancyObservation(gym.ObservationWrapper):
             if row < n_bins - 1 and col < n_bins - 1:
                 # in this way, then >max_range we dont fill the occupancy map in order to let a visible gap
                 occupancy_map[int(row), int(col)] = 255
-        return np.expand_dims(occupancy_map, -1)
+        return np.expand_dims(occupancy_map, 0)
 
     def observation(self, observation):
         assert 'scan' in observation
@@ -68,7 +69,7 @@ class FilterObservationWrapper(gym.Wrapper):
         self.observation_space = gym.spaces.Dict({obs: self.env.observation_space[obs] for obs in obs_list})
 
     def _filter_obs(self, original_obs):
-        new_obs = {}
+        new_obs = collections.OrderedDict()
         for obs in self._obs_list:
             assert obs in original_obs
             new_obs[obs] = original_obs[obs]
@@ -217,33 +218,6 @@ class TerminateOnlyOnTimeLimit(gym.Wrapper):
         obs, reward, _, info = super(TerminateOnlyOnTimeLimit, self).step(action)
         done = self._step >= self.max_episode_steps
         return obs, reward, done, info
-
-
-"""
-class AccelerationControlWrapper(gym.Wrapper):
-    def __init__(self, env):
-        super(AccelerationControlWrapper, self).__init__(env)
-        steering_vel_min, steering_vel_max = self.sim.params['sv_min'], self.sim.params['sv_max']
-        acceleration_min, acceleration_max = self.sim.params['sv_min'], self.sim.params['sv_max']
-        self.action_space = gym.spaces.Dict({
-            'steering_velocity': gym.spaces.Box(low=steering_vel_min, high=steering_vel_max, shape=()),
-            'acceleration': gym.spaces.Box(low=acceleration_min, high=acceleration_max, shape=()),
-        })
-        self._steering = 0.0
-        self._velocity = 0.0
-
-    def reset(self, **kwargs):
-        self._steering = 0.0
-        self._velocity = 0.0
-        return super().reset(**kwargs)
-
-    def step(self, action):
-        self._steering += self.timestep * action['steering_velocity']
-        self._velocity += self.timestep * action['acceleration']
-        original_action = {'steering': self._steering,
-                           'velocity': self._velocity}
-        return super(AccelerationControlWrapper, self).step(original_action)
-"""
 
 
 def test_wrapped_env(env, render):

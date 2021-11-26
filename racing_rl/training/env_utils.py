@@ -14,6 +14,8 @@ def get_reward_wrapper(reward: str):
     elif reward == 'min_action':
         return MinActionReward
     elif reward == 'progress':
+        return lambda env: ProgressReward(env, env.track, with_penalty=True)
+    elif reward == 'only_progress':
         return lambda env: ProgressReward(env, env.track)
     raise NotImplementedError(f'reward {reward} not implemented')
 

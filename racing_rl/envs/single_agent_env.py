@@ -1,3 +1,4 @@
+import collections
 from typing import Dict, Any
 
 import numpy as np
@@ -79,9 +80,10 @@ class SingleAgentRaceEnv(F110Env):
                                            'linear_vels_x', 'linear_vels_y', 'ang_vels_z',
                                            'collisions']]), f'obs keys are {old_obs.keys()}'
         # Note: the original env returns `scan` values > `max_range`. To keep compatibility wt obs-space, we clip it
-        obs = {'scan': np.clip(old_obs['scans'][0], 0, self._scan_range),
-               'pose': np.array([old_obs['poses_x'][0], old_obs['poses_y'][0], old_obs['poses_theta'][0]]),
-               'velocity': np.array([old_obs['linear_vels_x'][0]])}
+        obs = collections.OrderedDict(
+            {'scan': np.clip(old_obs['scans'][0], 0, self._scan_range),
+             'pose': np.array([old_obs['poses_x'][0], old_obs['poses_y'][0], old_obs['poses_theta'][0]]),
+             'velocity': np.array([old_obs['linear_vels_x'][0]])})
         return obs
 
     def _prepare_info(self, old_obs, old_info):
@@ -159,6 +161,7 @@ def render_callback(env_renderer):
     e.right = right + 800
     e.top = top + 800
     e.bottom = bottom - 800
+
 
 if __name__ == "__main__":
     env = SingleAgentRaceEnv("Catalunya")
