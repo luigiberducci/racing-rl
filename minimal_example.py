@@ -7,7 +7,9 @@ import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 from racing_rl.envs.wrappers import FrameSkip
 from skimage.color import rgb2gray
@@ -68,13 +70,16 @@ class DiscreteActionSpaceWrapper(gym.ActionWrapper):
     def action(self, action):
         return self.ACTIONS[action]
 
+def mkenv():
+    env = gym.make("CarRacing-v0")
+    env = SkipFirstKFrames(env, k_frames=25)
+    env = VelocityWrapper(env)
+    env = DiscreteActionSpaceWrapper(env)
+    env = FrameSkip(env, frame_skip=8)
+    check_env(env)
+    return env
 
-env = gym.make("CarRacing-v0")
-env = SkipFirstKFrames(env, k_frames=25)
-env = VelocityWrapper(env)
-env = DiscreteActionSpaceWrapper(env)
-env = FrameSkip(env, frame_skip=8)
-check_env(env)
+env = DummyVecEnv([lambda: mkenv()])
 print("[info] env ok")
 
 logdir = pathlib.Path(f"check_error/{time.time()}")
