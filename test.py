@@ -4,7 +4,7 @@ import pathlib
 import numpy as np
 from gym.wrappers import TimeLimit
 
-from racing_rl.envs.wrappers import FixResetWrapper, LapLimit
+from racing_rl.envs.wrappers import FixResetWrapper
 from racing_rl.training.agent_utils import make_agent
 from racing_rl.training.env_utils import make_base_env
 
@@ -53,7 +53,6 @@ for t in range(5):
         while not done:
             assert obs['lidar_occupancy'].shape[0] == 1
             action, _ = model.predict(obs, deterministic=True)
-            action = np.array([action[0], -1])
             obs, reward, done, info = eval_env.step(action)
             if progress_t0 < 0:
                 progress_t0 = info['progress']

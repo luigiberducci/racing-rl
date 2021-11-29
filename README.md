@@ -1,7 +1,10 @@
-# racing-rl
+# Racing-RL
 reinforcement learning for f1tenth racing
 
 # how to start
+The implementation has been tested with `Python 3.9` under `Ubuntu 20.04`.
+
+Installation:
 1. Clone this repo.
 2. Then initialize submodules `f1tenth_gym` and `f1tenth_racetracks`:
     ```
@@ -15,5 +18,5 @@ reinforcement learning for f1tenth racing
    ```
 4. Install requirements:
    ```
-   pip install --user -r requirements.txt
+   pip install -r requirements.txt
    ```

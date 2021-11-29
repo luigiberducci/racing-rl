@@ -27,7 +27,7 @@ class ProgressReward(gym.Wrapper):
     def step(self, action):
         obs, _, done, info = super(ProgressReward, self).step(action)
         new_progress = self._compute_progress(obs, info)
-        reward = 10 * (new_progress - self._current_progress)
+        reward = 100 * (new_progress - self._current_progress)
         if self._with_penalty and done:
             reward = -10
         self._current_progress = new_progress
