@@ -48,7 +48,7 @@ model = make_agent(train_env, args.algo, str(logdir))
 model.learn(args.n_steps, callback=callbacks)
 
 # evaluate
-mean_reward, std_reward = evaluate_policy(model, train_env, n_eval_episodes=10, deterministic=True)
+mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=10, deterministic=True)
 print(f"[after training] mean_reward={mean_reward:.2f} +/- {std_reward}")
 # save
 model.save(str(logdir / 'models' / 'final_model'))
@@ -56,5 +56,5 @@ model.save(str(logdir / 'models' / 'final_model'))
 # test reload
 model2 = make_agent(train_env, args.algo, None)
 model2.load(str(logdir / 'models' / 'final_model'))
-mean_reward, std_reward = evaluate_policy(model2, train_env, n_eval_episodes=10, deterministic=True)
+mean_reward, std_reward = evaluate_policy(model2, eval_env, n_eval_episodes=10, deterministic=True)
 print(f"[after loading] mean_reward={mean_reward:.2f} +/- {std_reward}")
