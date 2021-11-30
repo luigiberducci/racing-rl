@@ -6,14 +6,12 @@
 #             mdp with observation space (2d-occupancymap, velocity), reward 'min-action'
 #             train PPO with MultiInput policy (CNN feature extractor for images -> concat -> MLP policy)
 #             n_steps: 100K, n_seeds: 10
-
+import argparse
 from argparse import Namespace
 
 import numpy as np
 
 from train import train
-
-n_seeds = 10
 
 params = {
     'track': "melbourne",
@@ -22,9 +20,13 @@ params = {
     'n_steps': 100000,
 }
 
-for i in range(n_seeds):
-    for only_steering in [True, False]:
-        current_params = params
-        current_params['seed'] = np.random.randint(0, 1000000)
-        current_params['only_steering'] = only_steering
-        train(Namespace(**params))
+parser = argparse.ArgumentParser()
+parser.add_argument("--n_seeds", type=int, required=True)
+parser.add_argument("-only_steering", action='store_true')
+args = parser.parse_args()
+
+for i in range(args.n_seeds):
+    current_params = params
+    current_params['seed'] = np.random.randint(0, 1000000)
+    current_params['only_steering'] = args.only_steering
+    train(Namespace(**params))
