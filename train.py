@@ -41,15 +41,15 @@ def train(args):
     train_env = FixResetWrapper(train_env, mode="random")
     train_env = TimeLimit(train_env, max_episode_steps=1000)
 
-    eval_task = f"SingleAgent{args.track.capitalize()}_Gui-v0"
+    eval_task = f"SingleAgent{args.track.capitalize()}-v0"
     eval_env = make_base_env(eval_task, 'only_progress', only_steering=args.only_steering)
     eval_env = FixResetWrapper(eval_env, mode="grid")
     eval_env = TimeLimit(eval_env, max_episode_steps=5000)
     eval_env = Monitor(eval_env, logdir / 'videos')
 
     # callbacks
-    eval_freq = 1000
-    eval_callback = EvalCallback(eval_env, best_model_save_path=str(logdir / 'models'), n_eval_episodes=1,
+    eval_freq = 5000
+    eval_callback = EvalCallback(eval_env, best_model_save_path=str(logdir / 'models'), n_eval_episodes=3,
                                  log_path=str(logdir / 'evaluations'), eval_freq=eval_freq,
                                  deterministic=True, render=False)
     checkpoint_callback = CheckpointCallback(save_freq=eval_freq, save_path=str(logdir / 'models'))
@@ -63,7 +63,7 @@ def train(args):
     mean_reward, std_reward = evaluate_policy(model, eval_env, n_eval_episodes=10, deterministic=True)
     print(f"[after training] mean_reward={mean_reward:.2f} +/- {std_reward}")
     # save (apparently not working, todo discuss wt Axel)
-    model.save(str(logdir / 'models' / 'final_model'))
+    model.save(str(logdir / 'models' / f'final_model_{int(mean_reward)}'))
 
     # evaluate action distribution
     actions = evaluate_action_distribution(model, eval_env, deterministic=True)
