@@ -1,18 +1,15 @@
 import time
 
-from gym.wrappers import TimeLimit
 import matplotlib.pyplot as plt
 
 from racing_rl.baseline.PurePursuitPlanner import PurePursuitPlanner
-from racing_rl.envs.wrappers import FixResetWrapper, LapLimit, ElapsedTimeLimit, LidarOccupancyObservation, \
+from racing_rl.envs.wrappers import FixResetWrapper, LidarOccupancyObservation, \
     FixSpeedControl, TerminateOnlyOnTimeLimit
 from racing_rl.rewards.progress_based import ProgressReward
-from racing_rl.training.env_utils import make_base_env
 import racing_rl
 import gym
 
 env = gym.make('SingleAgentMelbourne_Gui-v0')
-env = FixSpeedControl(env, 1.0)
 env = ProgressReward(env, env.track)
 env = LidarOccupancyObservation(env, max_range=10.0, resolution=0.25)
 env = FixResetWrapper(env, mode='random')
@@ -39,7 +36,7 @@ def render_callback(env_renderer):
 
 env.add_render_callback(render_callback)
 
-planner = PurePursuitPlanner(env.track, wb=0.17145 + 0.15875, fixed_speed=5.0)
+planner = PurePursuitPlanner(env.track, wb=0.17145 + 0.15875, fixed_speed=5)
 
 for i in range(5):
     t0 = time.time()
@@ -51,9 +48,9 @@ for i in range(5):
         speed, steer = planner.plan(obs['pose'][0], obs['pose'][1], obs['pose'][2], lookahead_distance=1.5, vgain=1.0)
         obs, reward, done, info = env.step({'steering': steer, 'velocity': speed})
         # print(reward)
-        #env.render()
-        #if t % 10 == 0:
-        #    plt.clf()
-        #    plt.imshow(obs['lidar_occupancy'])
-        #    plt.pause(0.01)
+        env.render()
+        if t % 25 == 0:
+            plt.clf()
+            plt.imshow(obs['lidar_occupancy'][0])
+            plt.pause(0.001)
     print(f"DONE, sim time: {info['lap_time']}, real time: {time.time() - t0}")
