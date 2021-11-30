@@ -61,3 +61,16 @@ def make_agent(env, algo, logdir):
     else:
         raise NotImplementedError(algo)
     return model
+
+
+def evaluate_action_distribution(model, env, deterministic: bool = True):
+    actions = []
+    done = False
+    state = None
+    obs = env.reset()
+    while not done:
+        action, state = model.predict(obs, state, deterministic=deterministic)
+        obs, reward, done, info = env.step(action)
+        actions.append(action)
+    actions = np.array(actions)
+    return actions

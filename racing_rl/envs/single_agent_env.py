@@ -19,8 +19,9 @@ class SingleAgentRaceEnv(F110Env):
         - fix rendering issue based on map filepath
     """
 
-    def __init__(self, map_name: str, gui: bool = False, params: Dict[str, Any] = None, seed: int = 0):
+    def __init__(self, map_name: str, gui: bool = False, params: Dict[str, Any] = None, seed: int = None):
         self._track = Track.from_track_name(map_name)
+        seed = np.random.randint(0, 1000000) if seed is None else seed
         sim_params = params if params else self._default_sim_params
         super(SingleAgentRaceEnv, self).__init__(map=self._track.filepath, map_ext=self._track.ext,
                                                  params=sim_params, num_agents=1, seed=seed)
@@ -170,7 +171,7 @@ if __name__ == "__main__":
         obs = env.reset(mode='random')
         for j in range(500):
             obs, reward, done, info = env.step({'steering': 0.0, 'velocity': 2.0})
-            # env.render()
+            env.render()
     # check env
     try:
         from stable_baselines3.common.env_checker import check_env
