@@ -6,6 +6,11 @@
 #             mdp with observation space (2d-occupancymap, velocity), reward 'min-action'
 #             train PPO with MultiInput policy (CNN feature extractor for images -> concat -> MLP policy)
 #             n_steps: 100K, n_seeds: 10
+#
+# how to run (2 separate instances of 10 seeds each):
+#     $>python script/run_experiment_action_space.py --n_seeds 10 -only_steering
+#     $>python script/run_experiment_action_space.py --n_seeds 10
+
 import argparse
 from argparse import Namespace
 
