@@ -6,11 +6,12 @@ from racing_rl.envs.track import Track
 
 
 class ProgressReward(gym.Wrapper):
-    def __init__(self, env, track: Track, with_penalty : bool = False):
+    def __init__(self, env, track: Track, collision_penalty: float = 0.0):
+        assert collision_penalty >= 0.0, f"penalty must be >=0 and will be subtracted to the reward ({collision_penalty}"
+        self._collision_penalty = collision_penalty
         super(ProgressReward, self).__init__(env)
         self._track = track
         self._current_progress = None
-        self._with_penalty = with_penalty
 
     def reset(self, **kwargs):
         obs = super(ProgressReward, self).reset(**kwargs)
@@ -28,8 +29,8 @@ class ProgressReward(gym.Wrapper):
         obs, _, done, info = super(ProgressReward, self).step(action)
         new_progress = self._compute_progress(obs, info)
         reward = 100 * (new_progress - self._current_progress)
-        if self._with_penalty and done:
-            reward = -10
+        if done:
+            reward = - self._collision_penalty
         self._current_progress = new_progress
-        info['progress'] = self._current_progress   # add progress info
+        info['progress'] = self._current_progress  # add progress info
         return obs, reward, done, info

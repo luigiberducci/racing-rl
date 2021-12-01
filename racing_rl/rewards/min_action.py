@@ -1,31 +1,11 @@
-from typing import Tuple
-
 import gym
 import numpy as np
 
-from racing_rl import SingleAgentRaceEnv
-from racing_rl.envs.track import Track
-
-
-class MinSteeringReward(gym.Wrapper):
-    # todo: it should be replaced by the more-general min-action
-    def __init__(self, env):
-        super(MinSteeringReward, self).__init__(env)
-
-    def step(self, action):
-        obs, _, done, info = super(MinSteeringReward, self).step(action)
-        steering_low = self.action_space['steering'].low
-        steering_high = self.action_space['steering'].high
-        norm_steering = 2 * (action['steering'] - steering_low) / (steering_high - steering_low) - 1
-        if done:
-            reward = - 10
-        else:
-            reward = 1 - (action['steering'] ** 2)
-        return obs, reward, done, info
-
 
 class MinActionReward(gym.Wrapper):
-    def __init__(self, env):
+    def __init__(self, env, collision_penalty: float = 0.0):
+        assert collision_penalty >= 0.0, f"penalty must be >=0 and will be subtracted to the reward ({collision_penalty}"
+        self._collision_penalty = collision_penalty
         super(MinActionReward, self).__init__(env)
 
     def _normalize_action(self, name, action_val):
@@ -38,7 +18,7 @@ class MinActionReward(gym.Wrapper):
         action = [self._normalize_action(key, val) for key, val in action.items()]
         assert all(abs(a) <= 1 for a in action)
         if done:
-            reward = - 10
+            reward = - self._collision_penalty
         else:
-            reward = 1 - (1/len(action) * np.linalg.norm(action) ** 2)
+            reward = 1 - (1 / len(action) * np.linalg.norm(action) ** 2)
         return obs, reward, done, info

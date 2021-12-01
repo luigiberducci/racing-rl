@@ -1,6 +1,7 @@
 import pathlib
 from datetime import datetime
 
+import yaml
 import numpy as np
 
 from gym.wrappers import Monitor, TimeLimit
@@ -26,23 +27,32 @@ def save_action_figure(actions: np.ndarray, logdir: pathlib.Path):
     plt.savefig(str(logdir / "action_distribution.pdf"))
 
 
+def save_params(logdir, args):
+    assert type(args) == dict
+    logdir.mkdir(parents=True, exist_ok=True)
+    with open(str(logdir / "args.yaml"), "w") as outfile:
+        yaml.dump(dict(args), outfile)
+
+
 def train(args):
     # logs
     task = f"SingleAgent{args.track.capitalize()}-v0"
     timestamp = datetime.now().strftime("%m%d%Y_%H%M%S")
     logdir = pathlib.Path(
-        f"logs/{args.track}_{args.reward}_{args.algo}_OnlySteering{args.only_steering}_Seed{args.seed}_{timestamp}")
+        f"logs/{args.track}_{args.algo}_OnlySteering{args.only_steering}_{args.reward}_CollPenalty{args.collision_penalty}_{timestamp}")
+    save_params(logdir, vars(args))
 
     # set seed for reproducibility
     utils.seeding(args.seed)
 
     # make envs
-    train_env = make_base_env(task, args.reward, only_steering=args.only_steering)
+    train_env = make_base_env(task, args.reward, collision_penalty=args.collision_penalty,
+                              only_steering=args.only_steering)
     train_env = FixResetWrapper(train_env, mode="random")
     train_env = TimeLimit(train_env, max_episode_steps=1000)
 
     eval_task = f"SingleAgent{args.track.capitalize()}-v0"
-    eval_env = make_base_env(eval_task, 'only_progress', only_steering=args.only_steering)
+    eval_env = make_base_env(eval_task, 'only_progress', collision_penalty=0.0, only_steering=args.only_steering)
     eval_env = FixResetWrapper(eval_env, mode="grid")
     eval_env = TimeLimit(eval_env, max_episode_steps=5000)
     eval_env = Monitor(eval_env, logdir / 'videos')
@@ -75,8 +85,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--track", type=str, required=True)
-    parser.add_argument("--reward", type=str, required=True, choices=['min_steering', 'min_action', 'progress'])
+    parser.add_argument("--reward", type=str, required=True, choices=['min_action', 'progress'])
     parser.add_argument("--algo", choices=['sac', 'ppo', 'ddpg'], required=True)
+    parser.add_argument("--collision_penalty", type=float, default=10.0)
     parser.add_argument("--n_steps", type=int, default=1000000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("-only_steering", action='store_true')
