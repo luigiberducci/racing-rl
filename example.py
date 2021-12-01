@@ -9,9 +9,13 @@ from racing_rl.rewards.progress_based import ProgressReward
 import racing_rl
 import gym
 
+from racing_rl.training.utils import seeding
+
+seeding(0)
+
 env = gym.make('SingleAgentMelbourne_Gui-v0')
 env = ProgressReward(env, env.track)
-env = LidarOccupancyObservation(env, max_range=10.0, resolution=0.25)
+env = LidarOccupancyObservation(env, max_range=10.0, resolution=0.25, degree_fow=180)
 env = FixResetWrapper(env, mode='random')
 env = TerminateOnlyOnTimeLimit(env, max_episode_steps=1000)
 

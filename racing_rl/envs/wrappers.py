@@ -7,10 +7,11 @@ from numba import njit
 
 
 class LidarOccupancyObservation(gym.ObservationWrapper):
-    def __init__(self, env, max_range=10.0, resolution=0.08):
+    def __init__(self, env, max_range: float = 10.0, resolution: float = 0.08, degree_fow: int = 270):
         super(LidarOccupancyObservation, self).__init__(env)
         self._max_range = max_range
         self._resolution = resolution
+        self._degree_fow = degree_fow
         self._n_bins = math.ceil(2 * self._max_range / self._resolution)
         # extend observation space
         obs_dict = collections.OrderedDict()
@@ -39,6 +40,9 @@ class LidarOccupancyObservation(gym.ObservationWrapper):
         assert 'scan' in observation
         scan = observation['scan']
         scan_angles = self.sim.agents[0].scan_angles  # assumption: all the lidars are equal in ang. spectrum
+        # reduce fow
+        mask = abs(scan_angles) <= np.deg2rad(self._degree_fow / 2.0)   # 1 for angles in fow, 0 for others
+        scan = np.where(mask, scan, np.Inf)
         observation['lidar_occupancy'] = self._polar2cartesian(scan, scan_angles, self._n_bins, self._resolution)
         return observation
 

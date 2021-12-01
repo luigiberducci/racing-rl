@@ -5,7 +5,7 @@
 # exp. setup: evaluate for only_steering=True (1 control) and only_steering=False (2 controls),
 #             mdp with observation space (2d-occupancymap, velocity), reward 'min-action'
 #             train PPO with MultiInput policy (CNN feature extractor for images -> concat -> MLP policy)
-#             n_steps: 100K, n_seeds: 10
+#             n_steps: 50K, n_seeds: 10
 #
 # how to run (2 separate instances of 10 seeds each):
 #     $>python script/run_experiment_action_space.py --n_seeds 10 -only_steering
@@ -19,6 +19,7 @@ import numpy as np
 from train import train
 
 params = {
+    'logdir': 'logs/experiments/actionspace',
     'track': "melbourne",
     'reward': "min_action",
     'collision_penalty': 10.0,

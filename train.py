@@ -38,7 +38,7 @@ def train(args):
     task = f"SingleAgent{args.track.capitalize()}-v0"
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     logdir = pathlib.Path(
-        f"logs/{args.track}_{args.algo}_OnlySteering{args.only_steering}_{args.reward}_CollPenalty{args.collision_penalty}_{timestamp}")
+        f"{args.logdir}/{args.track}_{args.algo}_OnlySteering{args.only_steering}_{args.reward}_CollPenalty{args.collision_penalty}_{timestamp}")
     save_params(logdir, vars(args))
 
     # set seed for reproducibility
@@ -83,6 +83,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--logdir", type=str, default="logs")
     parser.add_argument("--track", type=str, required=True)
     parser.add_argument("--reward", type=str, required=True, choices=['min_action', 'progress'])
     parser.add_argument("--algo", choices=['sac', 'ppo', 'ddpg'], required=True)

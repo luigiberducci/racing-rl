@@ -5,7 +5,7 @@
 # exp. setup: evaluate PPO under various reward formulations (0.0, 1.0, 5.0, 10.0, 15.0, 20.0)
 #             mdp with observation space (2d-occupancymap, velocity), reward 'min-action', 2 controls (steer,speed)
 #             train PPO with MultiInput policy (CNN feature extractor for images -> concat -> MLP policy)
-#             n_steps: 50K, n_seeds: 5
+#             n_steps: 50K, n_seeds: 10
 #
 # how to run (2 separate instances of 3 penalties and 5 seeds each):
 #     $>python script/run_experiment_collision_penalty.py --n_seeds 5 --collision_penalty 0.0 1.0 5.0
@@ -19,11 +19,12 @@ import numpy as np
 from train import train
 
 params = {
-    'track': "melbourne",
-    'reward': "min_action",
-    'algo': "ppo",
+    'logdir': 'logs/experiments/collisionpenalty',
+    'track': 'melbourne',
+    'reward': 'min_action',
+    'algo': 'ppo',
     'only_steering': False,
-    'n_steps': 1000,
+    'n_steps': 50000,
 }
 
 parser = argparse.ArgumentParser()
