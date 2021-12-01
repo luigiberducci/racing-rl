@@ -3,8 +3,9 @@ import pathlib
 
 import numpy as np
 from gym.wrappers import TimeLimit
+from matplotlib import pyplot as plt
 
-from racing_rl.envs.wrappers import FixResetWrapper
+from racing_rl.envs.wrappers import FixResetWrapper, LapLimit
 from racing_rl.training.agent_utils import make_agent
 from racing_rl.training.env_utils import make_base_env
 
@@ -32,20 +33,22 @@ onlysteering = find_if_onlysteering(args.checkpoint)
 task = f"SingleAgent{args.track.capitalize()}-v0"
 eval_env = make_base_env(task, 'only_progress', collision_penalty=0.0, only_steering=onlysteering)
 eval_env = FixResetWrapper(eval_env, mode="grid")
-eval_env = TimeLimit(eval_env, max_episode_steps=1000)
+eval_env = LapLimit(eval_env, max_episode_laps=1)
 
 print(algo)
 for t in range(args.n_episodes):
     print(f"episode {t + 1}")
     model = make_agent(eval_env, algo, logdir=None)
-    model.load(str(args.checkpoint))
+    model = model.load(str(args.checkpoint))
 
     progresses = []
     for e in range(args.n_episodes):
         done = False
         obs = eval_env.reset()
         ret, step, progress_t0 = 0.0, 0, -1.0
+        t = 0
         while not done:
+            t += 1
             assert obs['lidar_occupancy'].shape[0] == 1
             action, _ = model.predict(obs, deterministic=True)
             obs, reward, done, info = eval_env.step(action)
@@ -54,6 +57,10 @@ for t in range(args.n_episodes):
             ret += reward
             step += 1
             eval_env.render()
+            if t % 25 == 0:
+                plt.clf()
+                plt.imshow(obs['lidar_occupancy'][0])
+                plt.pause(0.001)
         progress = info['progress'] - progress_t0
         print(f"[Info] Episode {e + 1}, steps: {step}, progress: {progress:.3f}")
         progresses.append(progress)

@@ -21,6 +21,7 @@ from train import train
 params = {
     'track': "melbourne",
     'reward': "min_action",
+    'collision_penalty': 10.0,
     'algo': "ppo",
     'n_steps': 100000,
 }

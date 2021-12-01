@@ -7,10 +7,9 @@
 #             train PPO with MultiInput policy (CNN feature extractor for images -> concat -> MLP policy)
 #             n_steps: 50K, n_seeds: 5
 #
-# how to run (6 separate instances of 5 seeds each):
-#     $>python script/run_experiment_collision_penalty.py --n_seeds 5 --collision_penalty 0.0
-#     ...
-#     $>python script/run_experiment_collision_penalty.py --n_seeds 5 --collision_penalty 20.0
+# how to run (2 separate instances of 3 penalties and 5 seeds each):
+#     $>python script/run_experiment_collision_penalty.py --n_seeds 5 --collision_penalty 0.0 1.0 5.0
+#     $>python script/run_experiment_collision_penalty.py --n_seeds 5 --collision_penalty 10.0 15.0 20.0
 
 import argparse
 from argparse import Namespace
@@ -24,16 +23,17 @@ params = {
     'reward': "min_action",
     'algo': "ppo",
     'only_steering': False,
-    'n_steps': 50000,
+    'n_steps': 1000,
 }
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_seeds", type=int, required=True)
-parser.add_argument("--collision_penalty", type=float, required=True)
+parser.add_argument("--collision_penalty", type=float, nargs='+', required=True)
 args = parser.parse_args()
 
-for i in range(args.n_seeds):
-    current_params = params
-    current_params['seed'] = np.random.randint(0, 1000000)
-    current_params['collision_penalty'] = args.collision_penalty
-    train(Namespace(**params))
+for collision_penalty in args.collision_penalty:
+    for _ in range(args.n_seeds):
+        current_params = params
+        current_params['seed'] = np.random.randint(0, 1000000)
+        current_params['collision_penalty'] = collision_penalty
+        train(Namespace(**params))

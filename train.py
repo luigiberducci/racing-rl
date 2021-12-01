@@ -16,14 +16,13 @@ from racing_rl.training import utils
 
 def save_action_figure(actions: np.ndarray, logdir: pathlib.Path):
     import matplotlib.pyplot as plt
-    plt.subplot(2, 1, 1)
-    plt.title("steering")
-    plt.plot(actions[:, 0])
-    plt.ylim(-1, +1)
-    plt.subplot(2, 1, 2)
-    plt.title("velocity")
-    plt.plot(actions[:, 1])
-    plt.ylim(-1, +1)
+    plt.clf()
+    action_names = [action_name for _, action_name in zip(range(actions.shape[1]), ["steering", "velocity"])]
+    for i, action_name in enumerate(action_names):
+        plt.subplot(len(action_names), 1, i+1)
+        plt.title(action_name)
+        plt.plot(actions[:, i])
+        plt.ylim(-1, +1)
     plt.savefig(str(logdir / "action_distribution.pdf"))
 
 
@@ -37,7 +36,7 @@ def save_params(logdir, args):
 def train(args):
     # logs
     task = f"SingleAgent{args.track.capitalize()}-v0"
-    timestamp = datetime.now().strftime("%m%d%Y_%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     logdir = pathlib.Path(
         f"logs/{args.track}_{args.algo}_OnlySteering{args.only_steering}_{args.reward}_CollPenalty{args.collision_penalty}_{timestamp}")
     save_params(logdir, vars(args))
