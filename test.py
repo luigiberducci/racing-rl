@@ -29,13 +29,8 @@ def find_if_onlysteering(path: pathlib.Path):
 algo = find_algo(args.checkpoint)
 onlysteering = find_if_onlysteering(args.checkpoint)
 
-# eval_task = f"SingleAgent{args.track.capitalize()}_Gui-v0"
-# eval_env = make_base_env(eval_task, reward='progress', only_steering=onlysteering)
-# eval_env = FixResetWrapper(eval_env, mode='grid')
-# eval_env = LapLimit(eval_env, max_episode_laps=1)
-
 task = f"SingleAgent{args.track.capitalize()}-v0"
-eval_env = make_base_env(task, 'only_progress', only_steering=onlysteering)
+eval_env = make_base_env(task, 'only_progress', collision_penalty=0.0, only_steering=onlysteering)
 eval_env = FixResetWrapper(eval_env, mode="grid")
 eval_env = TimeLimit(eval_env, max_episode_steps=1000)
 
