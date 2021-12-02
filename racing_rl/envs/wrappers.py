@@ -3,6 +3,8 @@ import math
 
 import gym
 import numpy as np
+from gym.spaces import Box
+from gym.wrappers import LazyFrames
 from numba import njit
 
 
@@ -41,10 +43,48 @@ class LidarOccupancyObservation(gym.ObservationWrapper):
         scan = observation['scan']
         scan_angles = self.sim.agents[0].scan_angles  # assumption: all the lidars are equal in ang. spectrum
         # reduce fow
-        mask = abs(scan_angles) <= np.deg2rad(self._degree_fow / 2.0)   # 1 for angles in fow, 0 for others
+        mask = abs(scan_angles) <= np.deg2rad(self._degree_fow / 2.0)  # 1 for angles in fow, 0 for others
         scan = np.where(mask, scan, np.Inf)
         observation['lidar_occupancy'] = self._polar2cartesian(scan, scan_angles, self._n_bins, self._resolution)
         return observation
+
+
+class FrameStackOnChannel(gym.Wrapper):
+    r"""
+    Observation wrapper that stacks the observations in a rolling manner.
+
+    Implementation from gym.wrappers but squeeze observation (then removing channel dimension),
+    in order to stack over the channel dimension.
+    """
+
+    def __init__(self, env, num_stack, lz4_compress=False):
+        super(FrameStackOnChannel, self).__init__(env)
+        self.num_stack = num_stack
+        self.lz4_compress = lz4_compress
+
+        self.frames = collections.deque(maxlen=num_stack)
+
+        low = np.repeat(self.observation_space.low[np.newaxis, ...], num_stack, axis=0)
+        high = np.repeat(
+            self.observation_space.high[np.newaxis, ...], num_stack, axis=0
+        )
+        self.observation_space = Box(
+            low=low, high=high, dtype=self.observation_space.dtype
+        )
+
+    def _get_observation(self):
+        assert len(self.frames) == self.num_stack, (len(self.frames), self.num_stack)
+        return LazyFrames(list(self.frames), self.lz4_compress)
+
+    def step(self, action):
+        observation, reward, done, info = self.env.step(action)
+        self.frames.append(np.squeeze(observation))  # assume 1d channel dimension and remove it
+        return self._get_observation(), reward, done, info
+
+    def reset(self, **kwargs):
+        observation = self.env.reset(**kwargs)
+        [self.frames.append(observation) for _ in range(self.num_stack)]
+        return self._get_observation()
 
 
 class FlattenAction(gym.ActionWrapper):
@@ -193,8 +233,8 @@ class ElapsedTimeLimit(gym.Wrapper):
 
 
 class FrameSkip(gym.Wrapper):
-    def __init__(self, env, frame_skip: int):
-        self._frame_skip = frame_skip
+    def __init__(self, env, skip: int):
+        self._frame_skip = skip
         super(FrameSkip, self).__init__(env)
 
     def step(self, action):

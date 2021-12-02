@@ -27,11 +27,24 @@ def find_if_onlysteering(path: pathlib.Path):
     return 'OnlySteeringTrue' in str(path)
 
 
+def find_if_include_velocity(path: pathlib.Path):
+    include_velocity = 'ObsVelocityTrue' in str(path)
+    frame_aggr = None
+    if 'AggrFrameMax' in str(path):
+        frame_aggr = "max"
+    elif 'AggrFrameStack' in str(path):
+        frame_aggr = "stack"
+    assert include_velocity or frame_aggr, "assertion: not(include_velocity) -> (frame_aggregator!=None)"
+    return include_velocity, frame_aggr
+
+
 algo = find_algo(args.checkpoint)
 onlysteering = find_if_onlysteering(args.checkpoint)
+include_velocity, frame_aggr = find_if_include_velocity(args.checkpoint)
 
 task = f"SingleAgent{args.track.capitalize()}-v0"
-eval_env = make_base_env(task, 'only_progress', collision_penalty=0.0, only_steering=onlysteering)
+eval_env, _ = make_base_env(task, 'only_progress', collision_penalty=0.0, only_steering=onlysteering,
+                            include_velocity=include_velocity, frame_aggregation=frame_aggr)
 eval_env = FixResetWrapper(eval_env, mode="grid")
 eval_env = LapLimit(eval_env, max_episode_laps=1)
 
@@ -57,10 +70,10 @@ for t in range(args.n_episodes):
             ret += reward
             step += 1
             eval_env.render()
-            if t % 25 == 0:
-                plt.clf()
-                plt.imshow(obs['lidar_occupancy'][0])
-                plt.pause(0.001)
+            # if t % 25 == 0:
+            # plt.clf()
+            # plt.imshow(obs['lidar_occupancy'][0])
+            # plt.pause(0.001)
         progress = info['progress'] - progress_t0
         print(f"[Info] Episode {e + 1}, steps: {step}, progress: {progress:.3f}")
         progresses.append(progress)

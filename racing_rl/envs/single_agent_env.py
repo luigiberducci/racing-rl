@@ -57,7 +57,7 @@ class SingleAgentRaceEnv(F110Env):
             velocity: desired velocity (m/s)
         """
         steering_low, steering_high = self.sim.params['s_min'], self.sim.params['s_max']
-        velocity_low, velocity_high = 0.5, 10.0
+        velocity_low, velocity_high = 0.0, 10.0
         return gym.spaces.Dict({
             "steering": gym.spaces.Box(low=steering_low, high=steering_high, shape=()),
             "velocity": gym.spaces.Box(low=velocity_low, high=velocity_high, shape=())

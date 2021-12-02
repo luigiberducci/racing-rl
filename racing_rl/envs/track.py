@@ -41,6 +41,7 @@ class Track:
 
     def get_progress(self, point: Tuple[float, float], above_val: float = 0.0):
         """ get progress by looking the closest waypoint with at least `above_val` progress """
+        assert 0 <= above_val <= 1, f'progress must be in 0,1 (instead given above_val={above_val})'
         n_points = self.centerline.shape[0]
         min_id = int(above_val * n_points)
         idx = self.get_id_closest_point2centerline(point, min_id=min_id)
