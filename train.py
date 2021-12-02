@@ -1,4 +1,5 @@
 import pathlib
+import time
 from datetime import datetime
 
 import gym
@@ -96,10 +97,13 @@ if __name__ == "__main__":
     parser.add_argument("--reward", type=str, required=True, choices=['min_action', 'progress'])
     parser.add_argument("--algo", choices=['sac', 'ppo', 'ddpg'], required=True)
     parser.add_argument("--collision_penalty", type=float, default=10.0)
-    parser.add_argument("--n_steps", type=int, default=1000000)
+    parser.add_argument("--n_steps", type=int, default=20000)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--frame_aggr", choices=['max', 'stack'], default=None, help="used if velocity not observed")
     parser.add_argument("-only_steering", action='store_true', help="reduce control to only the steering command")
     parser.add_argument("-include_velocity", action='store_true', help="include velocity in the observation")
     args = parser.parse_args()
+
+    t0 = time.time()
     train(args)
+    print(f"\n[info] done in {int(time.time() - t0)} seconds")

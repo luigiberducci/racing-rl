@@ -17,9 +17,6 @@ def get_reward_wrapper(reward: str, collision_penalty: float = 0.0):
         return lambda env: ProgressReward(env, env.track, collision_penalty=collision_penalty)
     elif reward == 'only_progress':
         return lambda env: ProgressReward(env, env.track, collision_penalty=0.0)
-    elif reward == 'progress_time_ratio':
-        # todo
-        pass
     raise NotImplementedError(f'reward {reward} not implemented')
 
 
@@ -27,7 +24,7 @@ def make_base_env(name: str, reward: str, collision_penalty: float, only_steerin
                   include_velocity: bool, frame_aggregation: str = None) -> (gym.Env, Dict[str, Any]):
     env_params = {
         'name': name,
-        'reward': {'name': reward, 'collsion_penalty': collision_penalty},
+        'reward': {'name': reward, 'collision_penalty': collision_penalty},
         'actions': {'only_steering': only_steering, 'fixed_speed': 2.0, 'frame_skip': 4},
         'observations': {'max_range': 10.0, 'resolution': 0.25, 'include_velocity': include_velocity,
                          'frame_aggregation': frame_aggregation, 'n_frame_aggregated': 2}
@@ -37,7 +34,7 @@ def make_base_env(name: str, reward: str, collision_penalty: float, only_steerin
     if only_steering:
         env = FixSpeedControl(env, fixed_speed=env_params['actions']['fixed_speed'])
     # define reward
-    env = get_reward_wrapper(reward, collision_penalty)(env)
+    env = get_reward_wrapper(env_params['reward']['name'], env_params['reward']['collision_penalty'])(env)
     # define observation space
     env = LidarOccupancyObservation(env, max_range=env_params['observations']['max_range'],
                                     resolution=env_params['observations']['resolution'])
