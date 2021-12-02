@@ -85,6 +85,7 @@ for t in range(args.n_episodes):
         print(f"[Info] Episode {e + 1}, steps: {step}, progress: {progress:.3f}")
         # plot actions
         for name, array in zip(['steering_cmd', 'speed_cmd', 'velocity'], [steerings, speeds, velocities]):
+            array = np.array(array)
             plt.plot(array, label=name)
         plt.legend()
         plt.show()
