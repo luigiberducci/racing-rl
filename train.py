@@ -73,8 +73,7 @@ def train(args):
     callbacks = [eval_callback, checkpoint_callback]
 
     # training
-    multiinput = type(train_env.observation_space) == gym.spaces.Dict
-    model, model_params = make_agent(train_env, args.algo, str(logdir), multiinput=multiinput)
+    model, model_params = make_agent(train_env, args.algo, str(logdir))
     save_params(logdir, model_params, "training_agent")
     model.learn(args.n_steps, callback=callbacks)
 

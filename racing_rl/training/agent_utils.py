@@ -37,8 +37,8 @@ class CustomCNN(BaseFeaturesExtractor):
         return self.linear(self.cnn(observations))
 
 
-def make_agent(env, algo, logdir, multiinput):
-    policy = "MultiInputPolicy" if multiinput else "MlpPolicy"
+def make_agent(env, algo, logdir):
+    policy = "MultiInputPolicy" if type(env.observation_space) == gym.spaces.Dict else "MlpPolicy"
     model_params = {
         "sac": {},
         "ppo": {},
