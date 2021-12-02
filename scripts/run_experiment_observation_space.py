@@ -19,24 +19,24 @@ import numpy as np
 from train import train
 
 params = {
-    'logdir': 'logs/experiments/collisionpenalty',
+    'logdir': 'logs/experiments/observationspace',
     'track': 'melbourne',
     'reward': 'min_action',
+    'collision_penalty': 10.0,
     'algo': 'ppo',
     'only_steering': False,
-    'n_steps': 50000,
-    'include_velocity': True,
-    'frame_aggr': None
+    'n_steps': 250000,
 }
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_seeds", type=int, required=True)
-parser.add_argument("--collision_penalty", type=float, nargs='+', required=True)
+parser.add_argument("-include_velocity", action='store_true', help="include velocity in the observation")
+parser.add_argument("--frame_aggr", choices=['max', 'stack'], default=None, help="used if velocity not observed")
 args = parser.parse_args()
 
-for collision_penalty in args.collision_penalty:
-    for _ in range(args.n_seeds):
-        current_params = params
-        current_params['seed'] = np.random.randint(0, 1000000)
-        current_params['collision_penalty'] = collision_penalty
-        train(Namespace(**params))
+for _ in range(args.n_seeds):
+    current_params = params
+    current_params['seed'] = np.random.randint(0, 1000000)
+    current_params['include_velocity'] = args.include_velocity
+    current_params['frame_aggr'] = args.frame_aggr
+    train(Namespace(**params))

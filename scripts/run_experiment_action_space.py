@@ -25,6 +25,8 @@ params = {
     'collision_penalty': 10.0,
     'algo': "ppo",
     'n_steps': 100000,
+    'include_velocity': True,
+    'frame_aggr': None
 }
 
 parser = argparse.ArgumentParser()
