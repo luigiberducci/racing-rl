@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--track", type=str, required=True)
 parser.add_argument("--checkpoint", type=pathlib.Path, required=True)
 parser.add_argument("--n_episodes", type=int, default=5)
+parser.add_argument("-render_obs", action='store_true', help='enable rendering of the occupancy-map from lidar')
 args = parser.parse_args()
 
 
@@ -51,7 +52,7 @@ eval_env = LapLimit(eval_env, max_episode_laps=1)
 print(algo)
 for t in range(args.n_episodes):
     print(f"episode {t + 1}")
-    model = make_agent(eval_env, algo, logdir=None)
+    model, _ = make_agent(eval_env, algo, logdir=None)
     model = model.load(str(args.checkpoint))
 
     progresses = []
@@ -59,9 +60,8 @@ for t in range(args.n_episodes):
         done = False
         obs = eval_env.reset()
         ret, step, progress_t0 = 0.0, 0, -1.0
-        t = 0
+        steerings, speeds, velocities = [], [], []
         while not done:
-            t += 1
             assert obs['lidar_occupancy'].shape[0] == 1
             action, _ = model.predict(obs, deterministic=True)
             obs, reward, done, info = eval_env.step(action)
@@ -69,13 +69,23 @@ for t in range(args.n_episodes):
                 progress_t0 = info['progress']
             ret += reward
             step += 1
+            # collect action statistics
+            steerings.append(info['action']['steering'])
+            speeds.append(info['action']['velocity'])
+            velocities.append(info['velocity'])
+            # rendering
             eval_env.render()
-            # if t % 25 == 0:
-            # plt.clf()
-            # plt.imshow(obs['lidar_occupancy'][0])
-            # plt.pause(0.001)
-        progress = info['progress'] - progress_t0
-        print(f"[Info] Episode {e + 1}, steps: {step}, progress: {progress:.3f}")
+            if args.render_obs and step % 25 == 0:
+                plt.clf()
+                plt.imshow(obs['lidar_occupancy'][0])
+                plt.pause(0.001)
+        # print results
+        progress = info['progress'] - progress_t0   # note: it is faulty when crossing starting line
         progresses.append(progress)
-
+        print(f"[Info] Episode {e + 1}, steps: {step}, progress: {progress:.3f}")
+        # plot actions
+        for name, array in zip(['steering_cmd', 'speed_cmd', 'velocity'], [steerings, speeds, velocities]):
+            plt.plot(array, label=name)
+        plt.legend()
+        plt.show()
     print(f"[Result] avg progress: {sum(progresses) / len(progresses):.3f}")
