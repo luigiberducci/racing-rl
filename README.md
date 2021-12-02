@@ -47,4 +47,5 @@ Installation:
   - [ ] what is the minimal observation space? (ideally only lidar-based)
   - [ ] what is the less-restrictive action space? (ideally constrained only by action ranges)
   - [ ] what is a simple reward that enable good training?
+- [ ] refactor the code structure, e.g., `make_base_env` is getting messy with a lot of wrappers
 - [ ] tune base algorithms
