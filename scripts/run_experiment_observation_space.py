@@ -1,15 +1,16 @@
-# experiment: experiments for various collision_penalty in reward shaping
-# date: 1 Dec 2021
-# aim:  evaluate the impact of the collision penalty in the reward shaping
+# experiment: experiments for various observation spaces
+# date: 2 Dec 2021
+# aim:  evaluate alternative solutions for remove velocity from the observations
 #
-# exp. setup: evaluate PPO under various reward formulations (0.0, 1.0, 5.0, 10.0, 15.0, 20.0)
-#             mdp with observation space (2d-occupancymap, velocity), reward 'min-action', 2 controls (steer,speed)
-#             train PPO with MultiInput policy (CNN feature extractor for images -> concat -> MLP policy)
-#             n_steps: 50K, n_seeds: 10
+# exp. setup: evaluate PPO under various observation-space formulations (including or excluding velocity)
+#             mdp reward 'min-action', 2 controls (steer,speed)
+#             train PPO with MultiInput policy or MlpPolicy (depending on the observations)
+#             n_steps: 250K, n_seeds: 1
 #
-# how to run (2 separate instances of 3 penalties and 5 seeds each):
-#     $>python script/run_experiment_collision_penalty.py --n_seeds 5 --collision_penalty 0.0 1.0 5.0
-#     $>python script/run_experiment_collision_penalty.py --n_seeds 5 --collision_penalty 10.0 15.0 20.0
+# how to run (3 separate instances and 1 seed each):
+#     $>python script/run_experiment_observation_space.py --n_seeds 1 -include_velocity
+#     $>python script/run_experiment_observation_space.py --n_seeds 1 --frame_aggr max
+#     $>python script/run_experiment_observation_space.py --n_seeds 1 --frame_aggr stack
 
 import argparse
 from argparse import Namespace
