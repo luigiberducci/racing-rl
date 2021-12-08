@@ -65,8 +65,8 @@ def train(args):
     eval_env = Monitor(eval_env, logdir / 'videos')
 
     # callbacks
-    eval_freq = 10000
-    eval_callback = EvalCallback(eval_env, best_model_save_path=str(logdir / 'models'), n_eval_episodes=1,
+    eval_freq = 5000
+    eval_callback = EvalCallback(eval_env, best_model_save_path=str(logdir / 'models'), n_eval_episodes=5,
                                  log_path=str(logdir / 'evaluations'), eval_freq=eval_freq,
                                  deterministic=True, render=False)
     checkpoint_callback = CheckpointCallback(save_freq=eval_freq, save_path=str(logdir / 'models'))

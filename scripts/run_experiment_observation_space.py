@@ -8,9 +8,9 @@
 #             n_steps: 250K, n_seeds: 1
 #
 # how to run (3 separate instances and 1 seed each):
-#     $>python script/run_experiment_observation_space.py --n_seeds 1 -include_velocity
-#     $>python script/run_experiment_observation_space.py --n_seeds 1 --frame_aggr max
-#     $>python script/run_experiment_observation_space.py --n_seeds 1 --frame_aggr stack
+#     $>python script/run_experiment_observation_space.py --n_seeds 1 -include_velocity --reward min_action
+#     $>python script/run_experiment_observation_space.py --n_seeds 1 --frame_aggr max --reward min_action
+#     $>python script/run_experiment_observation_space.py --n_seeds 1 --frame_aggr stack --reward min_action
 
 import argparse
 from argparse import Namespace
@@ -22,7 +22,6 @@ from train import train
 params = {
     'logdir': 'logs/experiments/observationspace',
     'track': 'melbourne',
-    'reward': 'min_action',
     'collision_penalty': 10.0,
     'algo': 'ppo',
     'only_steering': False,
@@ -31,6 +30,7 @@ params = {
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--n_seeds", type=int, required=True)
+parser.add_argument("--reward", choices=["progress", "min_action"])
 parser.add_argument("-include_velocity", action='store_true', help="include velocity in the observation")
 parser.add_argument("--frame_aggr", choices=['max', 'stack'], default=None, help="used if velocity not observed")
 args = parser.parse_args()
@@ -38,6 +38,7 @@ args = parser.parse_args()
 for _ in range(args.n_seeds):
     current_params = params
     current_params['seed'] = np.random.randint(0, 1000000)
+    current_params['reward'] = args.reward
     current_params['include_velocity'] = args.include_velocity
     current_params['frame_aggr'] = args.frame_aggr
     train(Namespace(**params))

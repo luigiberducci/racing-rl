@@ -31,9 +31,9 @@ def find_if_onlysteering(path: pathlib.Path):
 def find_if_include_velocity(path: pathlib.Path):
     include_velocity = 'ObsVelocityTrue' in str(path)
     frame_aggr = None
-    if 'AggrFrameMax' in str(path):
+    if 'AggrFramesMax' in str(path):
         frame_aggr = "max"
-    elif 'AggrFrameStack' in str(path):
+    elif 'AggrFramesStack' in str(path):
         frame_aggr = "stack"
     assert include_velocity or frame_aggr, "assertion: not(include_velocity) -> (frame_aggregator!=None)"
     return include_velocity, frame_aggr
@@ -62,7 +62,6 @@ for t in range(args.n_episodes):
         ret, step, progress_t0 = 0.0, 0, -1.0
         steerings, speeds, velocities = [], [], []
         while not done:
-            assert obs['lidar_occupancy'].shape[0] == 1
             action, _ = model.predict(obs, deterministic=True)
             obs, reward, done, info = eval_env.step(action)
             if progress_t0 < 0:
