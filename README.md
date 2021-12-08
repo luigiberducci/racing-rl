@@ -49,13 +49,17 @@ Installation:
         - the reward is inversely proportional to the actions' deviation from the mid-value of the action domain (
           steering=0.0 rad, speed=5.0 m/s)
 
-# TODO
+# Known bugs
 
 - [ ] add render-mode `rgb_array` to store video during the training process
 - [ ] `track.get_progress` does not correctly manage the crossing of the starting-line (from `0.99` to `1.99`)
+
+# Open questions
 - [ ] find stable problem configuration w.r.t. the following questions:
     - [ ] what is the minimal observation space? (ideally only lidar-based)
     - [ ] what is the less-restrictive action space? (ideally constrained only by action ranges)
     - [ ] what is a simple reward that enable good training?
+
+# TODO
 - [ ] refactor the code structure, e.g., `make_base_env` is getting messy with a lot of wrappers
-- [ ] tune base algorithms
+- [ ] tune base algorithms (e.g., Optuna)
