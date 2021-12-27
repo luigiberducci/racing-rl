@@ -44,7 +44,7 @@ def aggregate_evaluations(evaluations: List[Dict[str, np.ndarray]], params: Dict
 def plot_data(data: Dict[str, np.ndarray], ax: plt.Axes, **kwargs):
     assert all([key in data for key in ['x', 'mean', 'std']]), f'x, mean, std not found in data (keys: {data.keys()})'
     ax.plot(data['x'], data['mean'], **kwargs)
-    ax.fill_between(data['x'], data['mean'] + data['std'], data['mean'] + data['std'], alpha=0.5)
+    ax.fill_between(data['x'], data['mean'] - data['std'], data['mean'] + data['std'], alpha=0.5)
 
 
 def main(args):
