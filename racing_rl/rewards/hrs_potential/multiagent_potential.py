@@ -56,14 +56,9 @@ class HRSConservativeReward(RewardFunction):
         ego_position = self._track.get_progress(state["pose"][0:2], return_meters=True)
         npc_position = self._track.get_progress(info["npc0"]["pose"][0:2], return_meters=True)
         dist = np.clip(ego_position - npc_position, -100.0, 100.0)
-        unsafe_distance, target_distance = -1.0, -2.0
-        if dist < 0:    # ego behind
-            if dist > -1.0:
-                return - 1.0
-            elif target_distance - 0.5 <= dist <= target_distance + 0.5:
-                return + 1.0
-            else:
-                return 1.0 - (dist - target_distance) ** 2
+        unsafe_distance, target_distance = -2.0, -5.0
+        if dist < unsafe_distance:    # ego behind
+           return 1.0 - (dist - target_distance) ** 2
         else:
             return 0.0  # if the ego is not behind, the evaluation is not defined
 
