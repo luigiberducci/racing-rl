@@ -1,22 +1,26 @@
 from typing import Dict, Any
 
 import gym
-from gym.wrappers import RescaleAction, TimeLimit, FlattenObservation, FrameStack
+from gym.wrappers import RescaleAction, FlattenObservation
 from stable_baselines3.common.atari_wrappers import MaxAndSkipEnv
 
 from racing_rl.envs.wrappers import LidarOccupancyObservation, FilterObservationWrapper, FlattenAction, FixSpeedControl, \
     FrameSkip, NormalizeVelocityObservation, FrameStackOnChannel
-from racing_rl.rewards.min_action import MinActionReward
-from racing_rl.rewards.progress_based import ProgressReward
+from racing_rl.rewards.core.reward import RewardWrapper
+from racing_rl.rewards.hrs_potential.multiagent_potential import HRSConservativeReward
+from racing_rl.rewards.progress.min_action import MinActionReward
+from racing_rl.rewards.progress.progress_based import ProgressReward
 
 
-def get_reward_wrapper(reward: str, collision_penalty: float = 0.0):
+def get_reward_wrapper(reward: str, coll_penalty: float = 0.0):
     if reward == 'min_action':
-        return lambda env: MinActionReward(env, collision_penalty=collision_penalty)
+        return lambda env: RewardWrapper(env, reward_fn=MinActionReward(action_space=env.action_space, collision_penalty=coll_penalty))
     elif reward == 'progress':
-        return lambda env: ProgressReward(env, env.track, collision_penalty=collision_penalty)
+        return lambda env: RewardWrapper(env, reward_fn=ProgressReward(track=env.track, collision_penalty=coll_penalty))
     elif reward == 'only_progress':
-        return lambda env: ProgressReward(env, env.track, collision_penalty=0.0)
+        return lambda env: RewardWrapper(env, reward_fn=ProgressReward(track=env.track, collision_penalty=0.0))
+    elif reward == 'hrs_conservative':
+        return lambda env: RewardWrapper(env, reward_fn=HRSConservativeReward(track=env.track, action_space=env.action_space))
     raise NotImplementedError(f'reward {reward} not implemented')
 
 

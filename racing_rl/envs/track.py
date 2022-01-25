@@ -35,11 +35,24 @@ class Track:
     occupancy_map: np.ndarray
     centerline: np.ndarray
 
+    def __init__(self, filepath, ext, occupancy_map, centerline):
+        self.filepath = filepath
+        self.ext = ext
+        self.occupancy_map = occupancy_map
+        self.centerline = centerline
+        # approximate centerline length linearly
+        self.track_length = 0.0
+        for wp, nwp in zip(self.centerline[:-1, :], self.centerline[1:, :]):
+            x_diff = nwp[0] - wp[0]
+            y_diff = nwp[1] - wp[1]
+            self.track_length += np.linalg.norm([y_diff, x_diff])
+
+
     def get_id_closest_point2centerline(self, point: Tuple[float, float], min_id: int=0):
         idx = (np.linalg.norm(self.centerline[min_id:, 0:2] - point, axis=1)).argmin()
         return idx
 
-    def get_progress(self, point: Tuple[float, float], above_val: float = 0.0):
+    def get_progress(self, point: Tuple[float, float], above_val: float = 0.0, return_meters: bool = False):
         """ get progress by looking the closest waypoint with at least `above_val` progress """
         assert 0 <= above_val <= 1, f'progress must be in 0,1 (instead given above_val={above_val})'
         n_points = self.centerline.shape[0]
@@ -47,6 +60,8 @@ class Track:
         idx = self.get_id_closest_point2centerline(point, min_id=min_id)
         progress = idx / n_points
         assert 0 <= progress <= 1, f'progress out of bound {progress}'
+        if return_meters:
+            progress *= self.track_length
         return progress
 
     @staticmethod

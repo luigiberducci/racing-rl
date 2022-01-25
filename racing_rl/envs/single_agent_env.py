@@ -43,11 +43,13 @@ class SingleAgentRaceEnv(F110Env):
             scan: lidar data (m)
             pose: x, y, z coordinate (m)
             velocity: linear x velocity (m/s), linear y velocity (m/s), angular velocity (rad/s)
+            collision: 0 if not collision, 1 if collision
         """
         return gym.spaces.Dict({
             'scan': gym.spaces.Box(low=0.0, high=self._scan_range, shape=(self._scan_size,)),
             'pose': gym.spaces.Box(low=np.NINF, high=np.PINF, shape=(3,)),
-            'velocity': gym.spaces.Box(low=-5, high=20, shape=(1,)),
+            'velocity': gym.spaces.Box(low=-5.0, high=20.0, shape=(1,)),
+            'collision': gym.spaces.Box(low=0.0, high=1.0, shape=(1,)),
         })
 
     @property
@@ -84,7 +86,8 @@ class SingleAgentRaceEnv(F110Env):
         obs = collections.OrderedDict(
             {'scan': np.clip(old_obs['scans'][0], 0, self._scan_range),
              'pose': np.array([old_obs['poses_x'][0], old_obs['poses_y'][0], old_obs['poses_theta'][0]]),
-             'velocity': np.array([old_obs['linear_vels_x'][0]])})
+             'velocity': np.array([old_obs['linear_vels_x'][0]]),
+             'collision': old_obs['collisions'][0]})
         return obs
 
     def _prepare_info(self, old_obs, action, old_info):
@@ -139,6 +142,8 @@ class SingleAgentRaceEnv(F110Env):
         # call original method
         original_obs, reward, done, original_info = super().reset(poses=np.array([pose]))
         obs = self._prepare_obs(original_obs)
+        self._steering_history, self._steering_history_pntr = np.zeros(self._command_history, dtype=np.float32), 0
+        self._velocity_history, self._steering_history_pntr = np.zeros(self._command_history, dtype=np.float32), 0
         self._step = 0
         return obs
 

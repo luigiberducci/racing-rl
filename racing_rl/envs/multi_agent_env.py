@@ -1,6 +1,6 @@
 import collections
 import math
-from typing import Dict, Any
+from typing import Dict, Any, List, Callable
 
 import numpy as np
 
@@ -9,6 +9,27 @@ import gym
 from racing_rl.envs.track import Track
 from f110_gym.envs import F110Env
 from f110_gym.envs.rendering import EnvRenderer
+
+
+def init_basic_ctrl(track, n_npcs, fixed_speed, wheelbase):
+    """ return a basic pure-pursuit controller """
+    from racing_rl.baseline.PurePursuitPlanner import PurePursuitPlanner
+    pp = PurePursuitPlanner(track, wb=wheelbase, fixed_speed=fixed_speed)
+    # note: the PurePursuitPlanner return speed, steering, while we expect steering, speed
+    # then the returned action is flipped with [::-1]
+    return [lambda obs: pp.plan(obs['pose'][0], obs['pose'][1], obs['pose'][2], lookahead_distance=1.5, vgain=1.0)[::-1]
+            for _ in range(n_npcs)]
+
+def compute_sampling_params(track):
+    approx_len = 0.0
+    for wp, nwp in zip(track.centerline[:-1, :], track.centerline[1:, :]):
+        x_diff = nwp[0] - wp[0]
+        y_diff = nwp[1] - wp[1]
+        approx_len += np.linalg.norm([y_diff, x_diff])  # approx distance by summing linear segments
+    if approx_len < 15.0: # small tracks, with less than 10m centerline
+        return 1.5, 3.0
+    else:
+        return 3.0, 10.0
 
 
 class MultiAgentRaceEnv(F110Env):
@@ -21,15 +42,24 @@ class MultiAgentRaceEnv(F110Env):
         - fix rendering issue based on map filepath
     """
 
-    def __init__(self, map_name: str, gui: bool = False, n_npcs: int = 1, params: Dict[str, Any] = None,
-                 seed: int = None):
+    def __init__(self, map_name: str, gui: bool = False, n_npcs: int = 1, npc_controllers: List[Callable] = None,
+                 params: Dict[str, Any] = None, seed: int = None):
+        # sim params
         self._track = Track.from_track_name(map_name)
         seed = np.random.randint(0, 1000000) if seed is None else seed
         sim_params = params if params else self._default_sim_params
+        self._velocity_low, self._velocity_high = 1.0, 2.5  # 0 velocity could cause division-by-zero
+        # multi-agent configuration
         self._n_npcs = n_npcs
         self._agent_ids = ["ego"] + [f"npc{i}" for i in range(self._n_npcs)]
+        wheelbase = sim_params['lf'] + sim_params['lr']
+        self._npc_controllers = init_basic_ctrl(self._track, self._n_npcs, fixed_speed=1.5,
+                                                wheelbase=wheelbase) if npc_controllers is None else npc_controllers
+        # sampling intial conditions
+        self._min_dist, self._max_dist = compute_sampling_params(self._track)
+        #
         super(MultiAgentRaceEnv, self).__init__(map=self._track.filepath, map_ext=self._track.ext,
-                                                 params=sim_params, num_agents=len(self._agent_ids), seed=seed)
+                                                params=sim_params, num_agents=len(self._agent_ids), seed=seed)
         self.add_render_callback(render_callback)
         self._scan_size = self.sim.agents[0].scan_simulator.num_beams
         self._scan_range = self.sim.agents[0].scan_simulator.max_range
@@ -56,6 +86,7 @@ class MultiAgentRaceEnv(F110Env):
             'scan': gym.spaces.Box(low=0.0, high=self._scan_range, shape=(self._scan_size,)),
             'pose': gym.spaces.Box(low=np.NINF, high=np.PINF, shape=(3,)),
             'velocity': gym.spaces.Box(low=-5, high=20, shape=(1,)),
+            'collision': gym.spaces.Box(low=0.0, high=1.0, shape=(1,)),
         })
 
     @property
@@ -65,10 +96,9 @@ class MultiAgentRaceEnv(F110Env):
             velocity: desired velocity (m/s)
         """
         steering_low, steering_high = self.sim.params['s_min'], self.sim.params['s_max']
-        velocity_low, velocity_high = 0.5, 2.0  # be careful with 0 velocity, it could cause division-by-zero
         return gym.spaces.Dict({
             "steering": gym.spaces.Box(low=steering_low, high=steering_high, shape=()),
-            "velocity": gym.spaces.Box(low=velocity_low, high=velocity_high, shape=())
+            "velocity": gym.spaces.Box(low=self._velocity_low, high=self._velocity_high, shape=())
         })
 
     @property
@@ -90,7 +120,8 @@ class MultiAgentRaceEnv(F110Env):
         state = {
             'scan': np.clip(obs['scans'][n], 0, self._scan_range),
             'pose': np.array([obs['poses_x'][n], obs['poses_y'][n], obs['poses_theta'][n]]),
-            'velocity': np.array([obs['linear_vels_x'][n]])}
+            'velocity': np.array([obs['linear_vels_x'][n]]),
+            'collision': 1.0 if obs['collisions'][n] else 0.0}
         return state
 
     def _prepare_obs(self, old_obs):
@@ -121,7 +152,12 @@ class MultiAgentRaceEnv(F110Env):
         return info
 
     def _prepare_multiagent_action(self, action):
-        multiagent_action = np.concatenate([action, np.array([[0.0, 0.0] for npc in self._agent_ids[1:]])])
+        npc_actions = []
+        for i, (agent, ctrl) in enumerate(zip(self._agent_ids[1:], self._npc_controllers)):
+            obs = self._complete_state[agent]
+            act = self._npc_controllers[i](obs)
+            npc_actions.append(act)
+        multiagent_action = np.concatenate([action, np.array(npc_actions)])
         return multiagent_action
 
     def step(self, action):
@@ -145,7 +181,7 @@ class MultiAgentRaceEnv(F110Env):
         return obs, reward, done, info
 
     def _compute_poses(self, ego_wp, min_dist, max_dist):
-        """ todo explain """
+        """ Iteratively sample the next agent to be within [min_dist, max_dist] from the previous agent."""
         track_len = self._track.centerline.shape[0]
         last_wp = ego_wp
         poses = []
@@ -157,8 +193,23 @@ class MultiAgentRaceEnv(F110Env):
             pose = [wp[0], wp[1], theta]
             poses.append(pose)
             # compute next wp
-            dist = min_dist + np.random.random() * (max_dist - min_dist)
-            last_wp = int(last_wp + dist * track_len) % track_len
+            dist = 0.0
+            first_wp, last_wp, cur_wp = 0, track_len - 2, last_wp
+            # find waypoints delimiting the sampling interval, according to min/max distances
+            while dist < max_dist and cur_wp < track_len - 1:
+                x_diff = self._track.centerline[cur_wp][0] - self._track.centerline[cur_wp - 1][0]
+                y_diff = self._track.centerline[cur_wp][1] - self._track.centerline[cur_wp - 1][1]
+                dist = dist + np.linalg.norm([y_diff, x_diff])  # approx distance by summing linear segments
+                if first_wp < 0 and dist >= min_dist:
+                    first_wp = cur_wp
+                if last_wp > cur_wp and dist > max_dist:
+                    last_wp = cur_wp - 1
+                    break
+                cur_wp += 1
+            # update waypoint
+            assert 0 <= first_wp < self._track.centerline.shape[0] - 1, f"value={first_wp}"
+            assert 0 <= last_wp < self._track.centerline.shape[0] - 1, f"value={last_wp}"
+            last_wp = np.random.randint(first_wp, last_wp - 1)
         return poses
 
     def reset(self, mode: str = 'grid'):
@@ -167,14 +218,13 @@ class MultiAgentRaceEnv(F110Env):
                 - random: reset the agent position on a random waypoint
         """
         assert mode in ['grid', 'random']
-        min_dist, max_dist = 0.1, 0.5  # fraction (w.r.t. nr waypoints) between consecutive agents
         if mode == "grid":
             waypoint_id = 0
         elif mode == "random":
-            waypoint_id = np.random.randint(np.random.randint(self._track.centerline.shape[0] - 1))
+            waypoint_id = np.random.randint(self._track.centerline.shape[0] // 2)
         else:
             raise NotImplementedError(f"reset mode {mode} not implemented")
-        poses = self._compute_poses(waypoint_id, min_dist, max_dist)
+        poses = self._compute_poses(waypoint_id, self._min_dist, self._max_dist)
         # call original method
         original_obs, reward, done, original_info = super().reset(poses=np.array(poses))
         obs = self._prepare_obs(original_obs)
@@ -207,12 +257,12 @@ def render_callback(env_renderer):
 
 
 if __name__ == "__main__":
-    env = MultiAgentRaceEnv("Fallstudien")
+    env = MultiAgentRaceEnv("Fallstudien", n_npcs=2)
     for i in range(3):
         print(f"episode {i + 1}")
         obs = env.reset(mode='random')
         for j in range(500):
-            obs, reward, done, info = env.step({'steering': 0.0, 'velocity': 2.0})
+            obs, reward, done, info = env.step({'steering': 0.0, 'velocity': 1.5})
             print(info["collision"])
             env.render()
             if done:

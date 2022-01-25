@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 
 from racing_rl.baseline.PurePursuitPlanner import PurePursuitPlanner
 from racing_rl.envs.wrappers import FixResetWrapper, LidarOccupancyObservation, \
-    FixSpeedControl, TerminateOnlyOnTimeLimit
-from racing_rl.rewards.progress_based import ProgressReward
-import racing_rl
+    TerminateOnlyOnTimeLimit
+from racing_rl.rewards.progress.progress_based import ProgressReward
 import gym
 
 from racing_rl.training.utils import seeding
