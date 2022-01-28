@@ -17,8 +17,8 @@ def init_basic_ctrl(track, n_npcs, fixed_speed, wheelbase):
     pp = PurePursuitPlanner(track, wb=wheelbase, fixed_speed=fixed_speed)
     # note: the PurePursuitPlanner return speed, steering, while we expect steering, speed
     # then the returned action is flipped with [::-1]
-    return [lambda obs: pp.plan(obs['pose'][0], obs['pose'][1], obs['pose'][2], lookahead_distance=1.5, vgain=1.0)[::-1]
-            for _ in range(n_npcs)]
+    return [pp for _ in range(n_npcs)]
+
 
 def compute_sampling_params(track):
     approx_len = 0.0
@@ -26,7 +26,7 @@ def compute_sampling_params(track):
         x_diff = nwp[0] - wp[0]
         y_diff = nwp[1] - wp[1]
         approx_len += np.linalg.norm([y_diff, x_diff])  # approx distance by summing linear segments
-    if approx_len < 15.0: # small tracks, with less than 10m centerline
+    if approx_len < 15.0:  # small tracks, with less than 10m centerline
         return 1.5, 3.0
     else:
         return 3.0, 10.0
@@ -43,7 +43,7 @@ class MultiAgentRaceEnv(F110Env):
     """
 
     def __init__(self, map_name: str, gui: bool = False, n_npcs: int = 1, npc_controllers: List[Callable] = None,
-                 params: Dict[str, Any] = None, seed: int = None):
+                 params: Dict[str, Any] = None, term_overcoming: bool = True, seed: int = None):
         # sim params
         self._track = Track.from_track_name(map_name)
         seed = np.random.randint(0, 1000000) if seed is None else seed
@@ -69,6 +69,8 @@ class MultiAgentRaceEnv(F110Env):
         self._step = 0
         # keep state for playing npcs
         self._complete_state = None
+        # termination conditions
+        self._terminate_on_overcoming = term_overcoming
 
     @property
     def track(self):
@@ -155,7 +157,7 @@ class MultiAgentRaceEnv(F110Env):
         npc_actions = []
         for i, (agent, ctrl) in enumerate(zip(self._agent_ids[1:], self._npc_controllers)):
             obs = self._complete_state[agent]
-            act = self._npc_controllers[i](obs)
+            act = list(self._npc_controllers[i].predict(obs).values())
             npc_actions.append(act)
         multiagent_action = np.concatenate([action, np.array(npc_actions)])
         return multiagent_action
@@ -175,41 +177,49 @@ class MultiAgentRaceEnv(F110Env):
             obs = self._prepare_obs(original_obs)
             info = self._prepare_info(original_obs, action, original_info)
             done = bool(done)
+        # rendering
         if self._gui and self._step % self._render_freq == 0:
             self.render()
         self._step += 1
+        # termination condition
+        if self._terminate_on_overcoming and self._complete_state is not None:
+            for car, state in self._complete_state.items():
+                position = state["pose"][:2]
+                done = done or (self.track.get_progress(position) > 1.0)
         return obs, reward, done, info
 
     def _compute_poses(self, ego_wp, min_dist, max_dist):
         """ Iteratively sample the next agent to be within [min_dist, max_dist] from the previous agent."""
         track_len = self._track.centerline.shape[0]
-        last_wp = ego_wp
         poses = []
-        for _ in self._agent_ids:
-            # compute x, y, theta
-            assert 0 <= last_wp < self._track.centerline.shape[0] - 1
-            wp, next_wp = self._track.centerline[last_wp], self._track.centerline[last_wp + 1]
+        current_wp_id = ego_wp
+        while len(poses) < self.num_agents:
+            # compute pose from current wp_id
+            wp, next_wp = self._track.centerline[current_wp_id], self._track.centerline[current_wp_id + 1]
             theta = np.arctan2(next_wp[1] - wp[1], next_wp[0] - wp[0])
             pose = [wp[0], wp[1], theta]
             poses.append(pose)
-            # compute next wp
+            # find id of next waypoint which has mind <= dist <= maxd
+            first_id, interval_len = None, None   # first wp id with dist > mind, len of the interval btw first/last wp
+            pnt_id = current_wp_id  # moving pointer to scan the next waypoints
             dist = 0.0
-            first_wp, last_wp, cur_wp = 0, track_len - 2, last_wp
-            # find waypoints delimiting the sampling interval, according to min/max distances
-            while dist < max_dist and cur_wp < track_len - 1:
-                x_diff = self._track.centerline[cur_wp][0] - self._track.centerline[cur_wp - 1][0]
-                y_diff = self._track.centerline[cur_wp][1] - self._track.centerline[cur_wp - 1][1]
+            while dist < max_dist:
+                # sanity check
+                if pnt_id > track_len - 1:
+                    pnt_id = 0
+                # increment distance
+                x_diff = self._track.centerline[pnt_id][0] - self._track.centerline[pnt_id - 1][0]
+                y_diff = self._track.centerline[pnt_id][1] - self._track.centerline[pnt_id - 1][1]
                 dist = dist + np.linalg.norm([y_diff, x_diff])  # approx distance by summing linear segments
-                if first_wp < 0 and dist >= min_dist:
-                    first_wp = cur_wp
-                if last_wp > cur_wp and dist > max_dist:
-                    last_wp = cur_wp - 1
-                    break
-                cur_wp += 1
-            # update waypoint
-            assert 0 <= first_wp < self._track.centerline.shape[0] - 1, f"value={first_wp}"
-            assert 0 <= last_wp < self._track.centerline.shape[0] - 1, f"value={last_wp}"
-            last_wp = np.random.randint(first_wp, last_wp - 1)
+                # look for sampling interval
+                if first_id is None and dist >= min_dist:   # not found first id yet
+                    first_id = pnt_id
+                    interval_len = 0
+                if first_id is not None and dist <= max_dist:  # found first id, increment interval length
+                    interval_len += 1
+                pnt_id += 1
+            # sample next waypoint
+            current_wp_id = first_id + np.random.randint(0, interval_len) % (track_len - 1)
         return poses
 
     def reset(self, mode: str = 'grid'):
@@ -217,6 +227,10 @@ class MultiAgentRaceEnv(F110Env):
                 - grid: reset the agent position on the first waypoint
                 - random: reset the agent position on a random waypoint
         """
+        # reset npc controllers
+        rnd_in = lambda m, M: m + (M - m) * np.random.random()
+        [ctrl.reset(fixed_speed=rnd_in(self._velocity_low+0.1, self._velocity_high-0.1)) for ctrl in self._npc_controllers]
+        # sample initial conditions
         assert mode in ['grid', 'random']
         if mode == "grid":
             waypoint_id = 0

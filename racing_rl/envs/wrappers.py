@@ -49,6 +49,40 @@ class LidarOccupancyObservation(gym.ObservationWrapper):
         return observation
 
 
+class PreCommandObservation(gym.Wrapper):
+    """
+    Stack the last command to the observation.
+    """
+    def __init__(self, env):
+        super(PreCommandObservation, self).__init__(env)
+        # extend observation space
+        assert isinstance(env.action_space, gym.spaces.Dict)
+        obs_dict = collections.OrderedDict()
+        for k, space in self.observation_space.spaces.items():
+            obs_dict[k] = space
+        self._last_action = None
+        for action in env.action_space.spaces.keys():
+            act_space = env.action_space[action]
+            obs_dict[f"last_{action}"] = gym.spaces.Box(low=np.array([act_space.low]), high=np.array([act_space.high]), shape=(1,))
+        self.observation_space = gym.spaces.Dict(obs_dict)
+
+    def reset(self, **kwargs):
+        self._last_action = {act: np.array([0.0]) for act in self.action_space.spaces.keys()}
+        obs = super(PreCommandObservation, self).reset(**kwargs)
+        return self.observation(obs)
+
+    def step(self, action):
+        self._last_action = action
+        obs, reward, done, info = super(PreCommandObservation, self).step(action)
+        obs = self.observation(obs)
+        return obs, reward, done, info
+
+    def observation(self, observation):
+        for action in self.action_space.spaces.keys():
+            observation[f"last_{action}"] = self._last_action[action].reshape(1,)
+        return observation
+
+
 class FrameStackOnChannel(gym.Wrapper):
     r"""
     Observation wrapper that stacks the observations in a rolling manner.

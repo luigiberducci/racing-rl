@@ -1,4 +1,6 @@
 import time
+from typing import Dict
+
 import yaml
 import gym
 import numpy as np
@@ -7,6 +9,8 @@ from argparse import Namespace
 from numba import njit
 
 from pyglet.gl import GL_POINTS
+
+from racing_rl.baseline.controller import Controller
 
 """
 Planner Helpers
@@ -147,10 +151,65 @@ def get_actuation(pose_theta, lookahead_point, position, lookahead_distance, whe
     return speed, steering_angle
 
 
-class PurePursuitPlanner:
+def main():
+    import racing_rl
+    env = gym.make('SingleAgentMelbourne-v0')
+    track = env.track
+
+    planner = PurePursuitPlanner(track, wb=0.17145 + 0.15875, fixed_speed=2.5)
+
+    def render_callback(env_renderer):
+        # custom extra drawing function
+
+        e = env_renderer
+
+        # update camera to follow car
+        x = e.cars[0].vertices[::2]
+        y = e.cars[0].vertices[1::2]
+        top, bottom, left, right = max(y), min(y), min(x), max(x)
+        e.score_label.x = left
+        e.score_label.y = top - 700
+        e.left = left - 800
+        e.right = right + 800
+        e.top = top + 800
+        e.bottom = bottom - 800
+
+        planner.render_waypoints(env_renderer)
+
+    env.add_render_callback(render_callback)
+
+    obs = env.reset()
+    done = False
+    env.render()
+
+    laptime = 0.0
+    start = time.time()
+
+    lookahead_dist = 1.5
+    v_gain = 0.90
+
+    while not done:
+        speed, steer = planner.plan(obs['pose'][0], obs['pose'][1], obs['pose'][2],
+                                    lookahead_distance=lookahead_dist, vgain=v_gain)
+        obs, step_reward, done, info = env.step({'steering': steer, 'velocity': speed})
+        laptime += step_reward
+        env.render(mode='human')
+
+    print('Sim elapsed time:', laptime, 'Real elapsed time:', time.time() - start)
+
+
+class PurePursuitPlanner(Controller):
     """
     Example Planner
     """
+
+    def predict(self, obs) -> Dict[str, float]:
+        assert 'pose' in obs
+        action = self.plan(obs['pose'][0], obs['pose'][1], obs['pose'][2], lookahead_distance=1.5, vgain=1.0)
+        return {'steering': action[1], 'velocity': action[0]}
+
+    def reset(self, fixed_speed=1.0):
+        self.fixed_speed = fixed_speed
 
     def __init__(self, track, wb, fixed_speed: float = None):
         self.wheelbase = wb
@@ -219,53 +278,6 @@ class PurePursuitPlanner:
             speed = self.fixed_speed
 
         return speed, steering_angle
-
-
-def main():
-    import racing_rl
-    env = gym.make('SingleAgentMelbourne-v0')
-    track = env.track
-
-    planner = PurePursuitPlanner(track, wb=0.17145 + 0.15875, fixed_speed=2.5)
-
-    def render_callback(env_renderer):
-        # custom extra drawing function
-
-        e = env_renderer
-
-        # update camera to follow car
-        x = e.cars[0].vertices[::2]
-        y = e.cars[0].vertices[1::2]
-        top, bottom, left, right = max(y), min(y), min(x), max(x)
-        e.score_label.x = left
-        e.score_label.y = top - 700
-        e.left = left - 800
-        e.right = right + 800
-        e.top = top + 800
-        e.bottom = bottom - 800
-
-        planner.render_waypoints(env_renderer)
-
-    env.add_render_callback(render_callback)
-
-    obs = env.reset()
-    done = False
-    env.render()
-
-    laptime = 0.0
-    start = time.time()
-
-    lookahead_dist = 1.5
-    v_gain = 0.90
-
-    while not done:
-        speed, steer = planner.plan(obs['pose'][0], obs['pose'][1], obs['pose'][2],
-                                    lookahead_distance=lookahead_dist, vgain=v_gain)
-        obs, step_reward, done, info = env.step({'steering': steer, 'velocity': speed})
-        laptime += step_reward
-        env.render(mode='human')
-
-    print('Sim elapsed time:', laptime, 'Real elapsed time:', time.time() - start)
 
 
 if __name__ == '__main__':

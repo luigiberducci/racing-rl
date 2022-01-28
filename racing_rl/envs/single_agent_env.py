@@ -142,8 +142,6 @@ class SingleAgentRaceEnv(F110Env):
         # call original method
         original_obs, reward, done, original_info = super().reset(poses=np.array([pose]))
         obs = self._prepare_obs(original_obs)
-        self._steering_history, self._steering_history_pntr = np.zeros(self._command_history, dtype=np.float32), 0
-        self._velocity_history, self._steering_history_pntr = np.zeros(self._command_history, dtype=np.float32), 0
         self._step = 0
         return obs
 

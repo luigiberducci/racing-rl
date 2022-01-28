@@ -38,5 +38,5 @@ class RewardWrapper(gym.Wrapper):
         return next_state, reward, done, info
 
     def render(self, mode='human', **kwargs):
-        return super(RewardWrapper, self).render(mode=mode, info={'reward': self._reward, 'return': self._return})
+        return super(RewardWrapper, self).render(mode=mode, **kwargs)
 

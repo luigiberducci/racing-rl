@@ -50,7 +50,7 @@ def train(args):
     # make envs
     train_env, trainenv_params = make_base_env(task, args.reward, collision_penalty=args.collision_penalty,
                                                only_steering=args.only_steering, include_velocity=args.include_velocity,
-                                               frame_aggregation=args.frame_aggr)
+                                               frame_aggregation=args.frame_aggr, curv_control=args.curv_control)
     train_env = FixResetWrapper(train_env, mode="random")
     train_env = TimeLimit(train_env, max_episode_steps=1000)
     save_params(logdir, trainenv_params, filename="training_env")
@@ -58,7 +58,7 @@ def train(args):
     eval_task = f"SingleAgent{args.track.capitalize()}_Gui-v0"
     eval_env, _ = make_base_env(eval_task, 'only_progress', collision_penalty=0.0,
                                 only_steering=args.only_steering, include_velocity=args.include_velocity,
-                                frame_aggregation=args.frame_aggr)
+                                frame_aggregation=args.frame_aggr, curv_control=args.curv_control)
     eval_env = FixResetWrapper(eval_env, mode="grid")
     eval_env = TimeLimit(eval_env, max_episode_steps=5000)
     eval_env = LapLimit(eval_env, max_episode_laps=1)
@@ -101,6 +101,7 @@ if __name__ == "__main__":
     parser.add_argument("--frame_aggr", choices=['max', 'stack'], default=None, help="used if velocity not observed")
     parser.add_argument("-only_steering", action='store_true', help="reduce control to only the steering command")
     parser.add_argument("-include_velocity", action='store_true', help="include velocity in the observation")
+    parser.add_argument("-curv_control", action='store_true', help="control curvature instead of steering command")
     args = parser.parse_args()
 
     t0 = time.time()
